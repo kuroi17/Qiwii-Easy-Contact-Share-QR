@@ -5,6 +5,7 @@ import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/search_box.dart';
 import '../../../core/widgets/shell.dart';
+import '../../../core/widgets/status_pill.dart';
 import '../../contacts/presentation/widgets/contact_row.dart';
 import '../providers/receiver_provider.dart';
 import 'widgets/save_sheet.dart';
@@ -51,43 +52,58 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Review before saving',
-                    style: TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
                   const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Review before saving',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                      StatusPill(
+                        text: '${receiverState.receivedContacts.length} OFFERED',
+                        color: AppColors.primary,
+                        backgroundColor: AppColors.primaryLight,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    'The sender offered ${receiverState.receivedContacts.length} contacts. You decide what gets added.',
-                    style: const TextStyle(color: AppColors.slate, fontSize: 15),
+                    'You decide which contacts get added to your device.',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Duplicate Detection Warning Banner
+                  // Duplicate Warning Banner
                   if (dupCount > 0)
                     Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.amber.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
+                        color: AppColors.amberLight,
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: AppColors.amber, size: 22),
+                          const Icon(Icons.info_outline_rounded, color: AppColors.amber, size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              '$dupCount duplicate contact${dupCount > 1 ? 's' : ''} detected in your address book.',
+                              '$dupCount duplicate contact${dupCount > 1 ? 's' : ''} already in address book.',
                               style: const TextStyle(
-                                color: AppColors.navy,
+                                color: AppColors.textPrimary,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -102,7 +118,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                               'Skip All',
                               style: TextStyle(
                                 color: AppColors.amber,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w900,
                                 fontSize: 13,
                               ),
                             ),
@@ -116,15 +132,24 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                     onChanged: (q) => receiverNotifier.setSearchQuery(q),
                     hint: 'Search received contacts',
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${selectedIds.length} of ${receiverState.receivedContacts.length} selected',
-                        style: const TextStyle(
-                          color: AppColors.slate,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${selectedIds.length} of ${receiverState.receivedContacts.length} selected',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -140,24 +165,27 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                               ? 'Clear all'
                               : 'Select all',
                           style: const TextStyle(
-                            color: AppColors.teal,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w800,
+                            fontSize: 13,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+
                   Expanded(
                     child: filtered.isEmpty
                         ? const Center(
                             child: Text(
-                              'No matching contacts',
-                              style: TextStyle(color: AppColors.slate),
+                              'No matching contacts found',
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                           )
                         : ListView.separated(
                             itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 8),
+                            separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (_, index) {
                               final contact = filtered[index];
                               return ContactRow(
@@ -174,20 +202,25 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
           ),
           PrimaryButton(
             label: selectedIds.isEmpty ? 'Select Contacts' : 'Save ${selectedIds.length} Contacts',
-            icon: Icons.save_alt,
+            icon: Icons.download_rounded,
             onPressed: () {
               if (selectedIds.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select at least one contact to save.')),
+                  SnackBar(
+                    content: const Text('Please select at least one contact to save.'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 );
                 return;
               }
               showModalBottomSheet(
                 context: context,
                 isDismissible: false,
-                backgroundColor: AppColors.ivory,
+                backgroundColor: AppColors.surface,
                 shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 builder: (_) => SaveSheet(count: selectedIds.length),
               );

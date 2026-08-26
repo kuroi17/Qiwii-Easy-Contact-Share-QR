@@ -43,7 +43,7 @@ class _SaveSheetState extends ConsumerState<SaveSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(state.errorMessage ?? 'Failed to save contacts to device.'),
-            backgroundColor: Colors.red.shade800,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -59,60 +59,61 @@ class _SaveSheetState extends ConsumerState<SaveSheet> {
     return PopScope(
       canPop: !_isSaving,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 30),
+        padding: const EdgeInsets.fromLTRB(24, 14, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
-                width: 42,
+                width: 44,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.handleBar,
+                  color: AppColors.cardBorder,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
             const SizedBox(height: 22),
             Text(
-              _isSaving ? 'Saving Contacts…' : 'Save contacts?',
+              _isSaving ? 'Saving Contacts…' : 'Save to Address Book?',
               style: const TextStyle(
-                color: AppColors.navy,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               _isSaving
-                  ? 'Adding $progress of $total contacts to your address book.'
-                  : '${widget.count} contacts will be added to your device. Existing contacts will never be overwritten.',
-              style: const TextStyle(color: AppColors.slate, fontSize: 15, height: 1.45),
+                  ? 'Adding $progress of $total contacts directly to your phonebook.'
+                  : '${widget.count} contacts will be added. Existing contacts will never be overwritten.',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.45),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
 
             if (_isSaving) ...[
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: total > 0 ? (progress / total).clamp(0.0, 1.0) : null,
-                  backgroundColor: AppColors.mint,
-                  color: AppColors.teal,
-                  minHeight: 8,
+                  backgroundColor: AppColors.primaryLight,
+                  color: AppColors.primary,
+                  minHeight: 10,
                 ),
               ),
               const SizedBox(height: 24),
             ] else ...[
               SizedBox(
                 width: double.infinity,
+                height: 54,
                 child: FilledButton(
                   onPressed: _handleSave,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.navy,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(17),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                   child: Text(
@@ -121,12 +122,13 @@ class _SaveSheetState extends ConsumerState<SaveSheet> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w800),
+                    style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
