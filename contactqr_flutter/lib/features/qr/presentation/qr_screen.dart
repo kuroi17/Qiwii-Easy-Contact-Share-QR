@@ -150,9 +150,12 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     if (_encodedQrData != null) {
       Clipboard.setData(ClipboardData(text: _encodedQrData!));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Transfer payload copied to clipboard.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: const Text('Transfer payload copied to clipboard.'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -165,47 +168,63 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     return Shell(
       child: Column(
         children: [
-          const Header(title: 'Transfer'),
+          const Header(title: 'Transfer QR'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   StatusPill(
                     text: _isExpired
-                        ? 'EXPIRED'
+                        ? 'SESSION EXPIRED'
                         : isSuccess
                             ? 'TRANSFER COMPLETE'
                             : _transferStatus == TransferStatus.transferring
                                 ? 'SENDING DATA...'
-                                : 'READY TO CONNECT',
+                                : 'READY TO SCAN',
+                    color: _isExpired
+                        ? AppColors.error
+                        : isSuccess
+                            ? AppColors.success
+                            : AppColors.primary,
+                    backgroundColor: _isExpired
+                        ? AppColors.errorLight
+                        : isSuccess
+                            ? AppColors.successLight
+                            : AppColors.primaryLight,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   Text(
                     _isExpired
                         ? 'Transfer Expired'
                         : isSuccess
                             ? 'Contacts Sent!'
-                            : 'Show this code',
+                            : 'Scan this code',
                     style: const TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.6,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     _isExpired
                         ? 'This session has timed out. Please generate a new code.'
                         : isSuccess
-                            ? 'The receiver has securely received your contacts.'
-                            : 'Ask the receiver to scan this QR code with ContactQR.',
+                            ? 'The receiver has securely imported your contacts.'
+                            : 'Point the receiver device’s camera at this QR code.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.slate, fontSize: 15),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   CardBox(
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
                         if (_isExpired)
@@ -213,8 +232,8 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                             height: 220,
                             width: 220,
                             decoration: BoxDecoration(
-                              color: AppColors.ivory,
-                              borderRadius: BorderRadius.circular(16),
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +243,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 const Text(
                                   'Session Expired',
                                   style: TextStyle(
-                                    color: AppColors.navy,
+                                    color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 16,
                                   ),
@@ -232,9 +251,14 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
                                   onPressed: _startSession,
-                                  icon: const Icon(Icons.refresh),
+                                  icon: const Icon(Icons.refresh_rounded),
                                   label: const Text('Generate New Code'),
-                                  style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -244,19 +268,19 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                             height: 220,
                             width: 220,
                             decoration: BoxDecoration(
-                              color: AppColors.mint,
-                              borderRadius: BorderRadius.circular(16),
+                              color: AppColors.successLight,
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle, size: 64, color: AppColors.success),
+                                Icon(Icons.check_circle_rounded, size: 64, color: AppColors.success),
                                 SizedBox(height: 12),
                                 Text(
-                                  'Done!',
+                                  'All Done!',
                                   style: TextStyle(
-                                    color: AppColors.navy,
-                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w900,
                                     fontSize: 18,
                                   ),
                                 ),
@@ -268,59 +292,87 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                             height: 220,
                             width: 220,
                             child: Center(
-                              child: CircularProgressIndicator(color: AppColors.teal),
+                              child: CircularProgressIndicator(color: AppColors.primary),
                             ),
                           )
                         else
                           GestureDetector(
                             onTap: _copyQrData,
-                            child: QrImageView(
-                              data: _encodedQrData!,
-                              size: 220,
-                              version: QrVersions.auto,
-                              errorCorrectionLevel: QrErrorCorrectLevel.M,
-                            ),
-                          ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '${widget.count} contacts • ',
-                              style: const TextStyle(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              _isExpired ? 'Expired' : 'Expires in ${_formatDuration(_remaining)}',
-                              style: TextStyle(
-                                color: _isExpired ? Colors.red : AppColors.teal,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: QrImageView(
+                                data: _encodedQrData!,
+                                size: 210,
+                                version: QrVersions.auto,
+                                errorCorrectionLevel: QrErrorCorrectLevel.M,
                               ),
                             ),
-                          ],
+                          ),
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer_outlined,
+                                size: 15,
+                                color: _isExpired ? AppColors.error : AppColors.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${widget.count} contacts • ',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                _isExpired ? 'Expired' : 'Expires in ${_formatDuration(_remaining)}',
+                                style: TextStyle(
+                                  color: _isExpired ? AppColors.error : AppColors.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   if (!_isExpired)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           isSuccess
-                              ? Icons.check_circle
+                              ? Icons.check_circle_rounded
                               : _transferStatus == TransferStatus.transferring
-                                  ? Icons.sync
+                                  ? Icons.sync_rounded
                                   : Icons.circle,
                           size: 14,
-                          color: isSuccess ? AppColors.success : AppColors.teal,
+                          color: isSuccess ? AppColors.success : AppColors.primary,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           _statusMessage,
-                          style: const TextStyle(color: AppColors.slate, fontSize: 14, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -328,17 +380,23 @@ class _QrScreenState extends ConsumerState<QrScreen> {
               ),
             ),
           ),
-          TextButton(
-            onPressed: () {
-              _server?.stop();
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
-            child: const Text(
-              'Cancel transfer',
-              style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: TextButton.icon(
+              onPressed: () {
+                _server?.stop();
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+              label: const Text(
+                'Cancel Transfer',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );

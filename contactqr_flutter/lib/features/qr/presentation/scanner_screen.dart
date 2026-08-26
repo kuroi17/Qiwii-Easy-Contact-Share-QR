@@ -163,8 +163,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade800,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -184,31 +185,32 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       dark: true,
       child: Column(
         children: [
-          const Header(title: 'Receive contacts', light: true),
+          const Header(title: 'Scan QR Code', light: true),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Text(
-                    _isDownloading ? 'Receiving Contacts...' : 'Scan the sender’s code',
+                    _isDownloading ? 'Receiving Contacts...' : 'Align Code in Frame',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _isDownloading
-                        ? 'Transferring securely over local connection.'
-                        : 'Align the QR code inside the frame. Nothing is saved automatically.',
+                        ? 'Transferring securely over direct P2P connection.'
+                        : 'Hold your camera over the sender’s QR code to scan.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.subtitleLight,
-                      fontSize: 15,
-                      height: 1.45,
+                      fontSize: 14,
+                      height: 1.4,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -222,31 +224,46 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.camera_alt_outlined, size: 54, color: AppColors.teal),
-                              const SizedBox(height: 16),
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLight,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.camera_alt_outlined, size: 32, color: AppColors.primary),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
                               const Text(
                                 'Camera Access Needed',
                                 style: TextStyle(
-                                  color: AppColors.navy,
+                                  color: AppColors.textPrimary,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               const Text(
                                 'ContactQR requires camera access to scan the transfer QR code.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.slate, fontSize: 14),
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 24),
                               FilledButton(
                                 onPressed: _initCamera,
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
                                 child: const Text('Grant Access'),
                               ),
+                              const SizedBox(height: 8),
                               TextButton(
                                 onPressed: () => openAppSettings(),
-                                child: const Text('Open App Settings', style: TextStyle(color: AppColors.navy)),
+                                child: const Text('Open App Settings', style: TextStyle(color: AppColors.textPrimary)),
                               ),
                             ],
                           ),
@@ -259,14 +276,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                         child: Container(
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
-                            color: AppColors.darkNavy,
+                            color: AppColors.darkSurface,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: AppColors.darkNavyBorder),
+                            border: Border.all(color: AppColors.darkBorder),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const CircularProgressIndicator(color: AppColors.teal),
+                              const CircularProgressIndicator(color: AppColors.primary),
                               const SizedBox(height: 24),
                               Text(
                                 _downloadStatus,
@@ -296,8 +313,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                                 height: 310,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: AppColors.darkNavy,
-                                  border: Border.all(color: AppColors.darkNavyBorder),
+                                  color: AppColors.darkSurface,
+                                  border: Border.all(color: AppColors.darkBorder),
                                   borderRadius: BorderRadius.circular(28),
                                 ),
                                 child: _controller == null
@@ -307,7 +324,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
+                                              Icon(Icons.qr_code_scanner_rounded, size: 72, color: Colors.white70),
                                               SizedBox(height: 12),
                                               Text(
                                                 'Initializing webcam / camera...',
@@ -347,36 +364,88 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               ),
                             ),
 
-                            // Animated scanning reticle
+                            // Corner registration brackets [ ⸤ ⸣ ]
+                            Positioned.fill(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Stack(
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            top: BorderSide(color: AppColors.primary, width: 3.5),
+                                            left: BorderSide(color: AppColors.primary, width: 3.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.topRight,
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            top: BorderSide(color: AppColors.primary, width: 3.5),
+                                            right: BorderSide(color: AppColors.primary, width: 3.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.bottomLeft,
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(color: AppColors.primary, width: 3.5),
+                                            left: BorderSide(color: AppColors.primary, width: 3.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.bottomRight,
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(color: AppColors.primary, width: 3.5),
+                                            right: BorderSide(color: AppColors.primary, width: 3.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Animated scanning laser
                             IgnorePointer(
                               child: AnimatedBuilder(
                                 animation: _animController,
                                 builder: (_, _) {
-                                  return Container(
-                                    height: 310,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(28),
-                                      border: Border.all(
-                                        color: AppColors.teal.withValues(alpha: 0.6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment(0, (_animController.value * 2) - 1),
-                                      child: Container(
-                                        height: 2,
-                                        width: 240,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.teal,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.teal.withValues(alpha: 0.8),
-                                              blurRadius: 10,
-                                              spreadRadius: 2,
-                                            ),
-                                          ],
-                                        ),
+                                  return Align(
+                                    alignment: Alignment(0, (_animController.value * 2) - 1),
+                                    child: Container(
+                                      height: 2.5,
+                                      width: 240,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.primary.withValues(alpha: 0.9),
+                                            blurRadius: 12,
+                                            spreadRadius: 3,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   );
@@ -388,7 +457,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                       ),
                     ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                   if (!_isDownloading)
                     const Text(
                       'Point camera at the sender’s QR code',
@@ -407,7 +476,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               setState(() => _torchEnabled = !_torchEnabled);
                             },
                             icon: Icon(
-                              _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                              _torchEnabled ? Icons.flash_on_rounded : Icons.flash_off_rounded,
                               color: Colors.white,
                             ),
                           ),
@@ -418,11 +487,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                           ),
                           const SizedBox(width: 32),
                         ],
-                        const Icon(Icons.lock_outline, color: Colors.white, size: 20),
+                        const Icon(Icons.shield_outlined, color: AppColors.primary, size: 20),
                         const SizedBox(width: 8),
                         const Text(
-                          '100% Private',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
+                          '100% Private P2P',
+                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
