@@ -110,7 +110,12 @@ class ReviewScreen extends ConsumerWidget {
             icon: Icons.qr_code_2,
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => QrScreen(count: chosen.length)),
+              MaterialPageRoute(
+                builder: (_) => QrScreen(
+                  count: chosen.length,
+                  selectedContacts: chosen,
+                ),
+              ),
             ),
           ),
         ],
