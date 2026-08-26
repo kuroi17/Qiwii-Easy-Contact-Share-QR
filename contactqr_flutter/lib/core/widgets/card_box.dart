@@ -5,21 +5,49 @@ class CardBox extends StatelessWidget {
   const CardBox({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(20),
+    this.backgroundColor,
+    this.borderRadius,
+    this.borderColor,
+    this.onTap,
   });
 
   final Widget child;
-  final EdgeInsets padding;
+  final EdgeInsetsGeometry padding;
+  final Color? backgroundColor;
+  final BorderRadius? borderRadius;
+  final Color? borderColor;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: padding,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final effectiveRadius = borderRadius ?? BorderRadius.circular(22);
+
+    final container = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? AppColors.surface,
+        borderRadius: effectiveRadius,
+        border: Border.all(
+          color: borderColor ?? AppColors.cardBorder,
+          width: 1,
+        ),
+        boxShadow: backgroundColor == Colors.transparent ? null : AppColors.softShadow,
+      ),
+      child: child,
+    );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: effectiveRadius,
+          child: container,
+        ),
+      );
+    }
+
+    return container;
+  }
 }

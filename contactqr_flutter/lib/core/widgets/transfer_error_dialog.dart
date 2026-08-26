@@ -27,9 +27,9 @@ class TransferErrorDialog extends StatelessWidget {
   }) {
     return showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.ivory,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) => TransferErrorDialog(
         title: title,
@@ -44,17 +44,17 @@ class TransferErrorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 30),
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-              width: 42,
+              width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: AppColors.handleBar,
+                color: AppColors.cardBorder,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -63,21 +63,25 @@ class TransferErrorDialog extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: AppColors.errorLight,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.wifi_off_rounded, color: Colors.red.shade700, size: 28),
+                child: const Center(
+                  child: Icon(Icons.wifi_off_rounded, color: AppColors.error, size: 24),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.navy,
+                    color: AppColors.textPrimary,
                     fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
                   ),
                 ),
               ),
@@ -86,33 +90,34 @@ class TransferErrorDialog extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             message,
-            style: const TextStyle(color: AppColors.slate, fontSize: 14, height: 1.45),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.45),
           ),
           if (showTroubleshooting) ...[
             const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.mint,
-                borderRadius: BorderRadius.circular(14),
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Troubleshooting Tips:',
+                    'Troubleshooting Guide:',
                     style: TextStyle(
-                      color: AppColors.navy,
+                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  SizedBox(height: 8),
                   Text(
-                    '1. Ensure both devices are connected to the same Wi-Fi.\n'
-                    '2. Or turn on Mobile Hotspot on one phone and connect the other phone to it.\n'
-                    '3. Keep both devices nearby during transfer.',
-                    style: TextStyle(color: AppColors.slate, fontSize: 12, height: 1.5),
+                    '1. Ensure both devices are connected to the same Wi-Fi network.\n'
+                    '2. Or turn on Personal Hotspot on one device and connect the other.\n'
+                    '3. Keep both devices close during transfer.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.5),
                   ),
                 ],
               ),
@@ -122,15 +127,15 @@ class TransferErrorDialog extends StatelessWidget {
           if (onPrimaryAction != null) ...[
             SizedBox(
               width: double.infinity,
+              height: 54,
               child: FilledButton(
                 onPressed: () {
                   Navigator.pop(context);
                   onPrimaryAction?.call();
                 },
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 child: Text(
                   primaryActionText,
@@ -145,7 +150,7 @@ class TransferErrorDialog extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Dismiss',
-                style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700),
+                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700),
               ),
             ),
           ),

@@ -6,7 +6,7 @@ class SearchBox extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onChanged,
-    required this.hint,
+    this.hint = 'Search contacts...',
   });
 
   final TextEditingController controller;
@@ -14,24 +14,47 @@ class SearchBox extends StatelessWidget {
   final String hint;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    onChanged: onChanged,
-    decoration: InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.slate),
-      prefixIcon: const Icon(Icons.search, color: AppColors.slate),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border),
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.softShadow,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.textSecondary,
+            size: 22,
+          ),
+          suffixIcon: controller.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                  onPressed: () {
+                    controller.clear();
+                    onChanged('');
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        ),
       ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-    ),
-  );
+    );
+  }
 }
