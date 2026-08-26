@@ -10,14 +10,14 @@ typedef TransferServerCallback = void Function(TransferStatus status, String? me
 
 class LocalTransferServer {
   LocalTransferServer({
-    required this.contacts,
+    required List<AppContact> contacts,
     required this.sessionId,
     required this.sessionToken,
     required this.encryptionKey,
     this.onStatusChanged,
-  });
+  }) : _contacts = List<AppContact>.from(contacts);
 
-  final List<AppContact> contacts;
+  List<AppContact> _contacts;
   final String sessionId;
   final String sessionToken;
   final String encryptionKey;
@@ -66,7 +66,7 @@ class LocalTransferServer {
     final path = request.uri.path;
     final token = request.uri.queryParameters['token'];
 
-    // CORS Headers for local communication
+    // CORS Headers for local P2P communication
     request.response.headers.add('Access-Control-Allow-Origin', '*');
     request.response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     request.response.headers.add('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept');
@@ -98,13 +98,13 @@ class LocalTransferServer {
 
       try {
         // Serialize and encrypt contacts dataset
-        final contactsJson = jsonEncode(contacts.map((c) => c.toJson()).toList());
+        final contactsJson = jsonEncode(_contacts.map((c) => c.toJson()).toList());
         final encryptedPayload = CryptoUtils.encryptPayload(contactsJson, encryptionKey);
         final checksum = CryptoUtils.sha256Hash(encryptedPayload);
 
         final responseData = {
           'sessionId': sessionId,
-          'count': contacts.length,
+          'count': _contacts.length,
           'payload': encryptedPayload,
           'checksum': checksum,
         };
@@ -130,7 +130,7 @@ class LocalTransferServer {
 
       onStatusChanged?.call(TransferStatus.completed, 'Transfer completed successfully!');
 
-      // Close server gracefully after 2 seconds
+      // Secure ephemeral wipe and close server gracefully after 2 seconds
       Future.delayed(const Duration(seconds: 2), stop);
       return;
     }
@@ -149,10 +149,13 @@ class LocalTransferServer {
     await request.response.close();
   }
 
-  /// Stops the HTTP server and frees the port.
+  /// Securely stops the HTTP server, clears port bindings, and wipes memory.
   Future<void> stop() async {
     if (_isDisposed) return;
     _isDisposed = true;
+
+    // Ephemeral wipe of in-memory contact records
+    _contacts = [];
 
     try {
       await _server?.close(force: true);

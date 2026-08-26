@@ -9,12 +9,14 @@ import '../../../core/utils/qr_codec.dart';
 import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
+import '../../../core/widgets/transfer_error_dialog.dart';
 import '../../../data/models/contact_model.dart';
 import '../../../data/models/transfer_session_model.dart';
 import '../../contacts/providers/sender_provider.dart';
 import '../../import/presentation/received_screen.dart';
 import '../../import/providers/receiver_provider.dart';
 import '../../transfer/providers/transfer_provider.dart';
+import '../../transfer/services/local_transfer_client.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -130,9 +132,20 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     } on QrProtocolException catch (e) {
       _showErrorSnackBar(e.message);
       _resetScanner();
-    } catch (e) {
-      _showErrorSnackBar('Transfer failed: $e');
+    } on NetworkTransferException catch (e) {
       _resetScanner();
+      if (mounted) {
+        TransferErrorDialog.show(
+          context,
+          title: 'Connection Failed',
+          message: e.message,
+          primaryActionText: 'Try Scanning Again',
+          onPrimaryAction: () => _resetScanner(),
+        );
+      }
+    } catch (e) {
+      _resetScanner();
+      _showErrorSnackBar('Transfer failed: $e');
     }
   }
 

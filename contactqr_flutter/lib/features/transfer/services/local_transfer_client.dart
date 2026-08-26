@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -6,22 +7,42 @@ import '../../../core/utils/crypto_utils.dart';
 import '../../../data/models/contact_model.dart';
 import '../../../data/models/transfer_session_model.dart';
 
+class NetworkTransferException implements Exception {
+  final String message;
+  final bool isNetworkUnreachable;
+  const NetworkTransferException(this.message, {this.isNetworkUnreachable = false});
+  @override
+  String toString() => message;
+}
+
 class LocalTransferClient {
   const LocalTransferClient();
 
   /// Connects to the sender's local HTTP server, downloads and decrypts contacts.
   Future<List<AppContact>> fetchContactsFromSender(TransferSession session) async {
     if (session.host == null || session.port == null || session.token == null || session.encryptionKey == null) {
-      throw Exception('Incomplete session connection parameters.');
+      throw const NetworkTransferException('Incomplete session connection parameters.');
     }
 
     final url = Uri.parse('http://${session.host}:${session.port}/transfer?token=${session.token}');
 
     try {
-      final response = await http.get(url).timeout(const Duration(seconds: 15));
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 12),
+        onTimeout: () {
+          throw const NetworkTransferException(
+            'Connection timed out. Could not reach sender device. Check if both devices are on the same Wi-Fi or Hotspot.',
+            isNetworkUnreachable: true,
+          );
+        },
+      );
+
+      if (response.statusCode == HttpStatus.unauthorized) {
+        throw const NetworkTransferException('Unauthorized session. Please ask the sender for a new QR code.');
+      }
 
       if (response.statusCode != HttpStatus.ok) {
-        throw Exception('Transfer server returned status code ${response.statusCode}: ${response.body}');
+        throw NetworkTransferException('Transfer server returned error code ${response.statusCode}.');
       }
 
       final Map<String, dynamic> responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -29,13 +50,13 @@ class LocalTransferClient {
       final checksum = responseData['checksum'] as String?;
 
       if (encryptedPayload == null || checksum == null) {
-        throw Exception('Invalid transfer response: missing payload or checksum.');
+        throw const NetworkTransferException('Invalid transfer response: missing payload or checksum.');
       }
 
       // Verify SHA-256 payload integrity checksum
       final actualChecksum = CryptoUtils.sha256Hash(encryptedPayload);
       if (actualChecksum != checksum) {
-        throw Exception('Transfer integrity check failed: payload checksum mismatch.');
+        throw const NetworkTransferException('Transfer integrity check failed: payload checksum mismatch.');
       }
 
       // Decrypt contacts payload using session key
@@ -50,16 +71,22 @@ class LocalTransferClient {
       _sendAcknowledgment(session);
 
       return contacts;
+    } on SocketException {
+      throw const NetworkTransferException(
+        'Could not connect to the sender’s device. Ensure both phones are on the same Wi-Fi or Personal Hotspot.',
+        isNetworkUnreachable: true,
+      );
     } catch (e) {
+      if (e is NetworkTransferException) rethrow;
       debugPrint('Error downloading contacts from sender: $e');
-      rethrow;
+      throw NetworkTransferException('Transfer error: $e');
     }
   }
 
   Future<void> _sendAcknowledgment(TransferSession session) async {
     try {
       final ackUrl = Uri.parse('http://${session.host}:${session.port}/ack?token=${session.token}');
-      await http.post(ackUrl).timeout(const Duration(seconds: 5));
+      await http.post(ackUrl).timeout(const Duration(seconds: 4));
     } catch (e) {
       debugPrint('Warning: Failed to send transfer acknowledgment to sender: $e');
     }
