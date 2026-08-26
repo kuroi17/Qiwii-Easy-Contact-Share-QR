@@ -51,21 +51,26 @@ class _SendScreenState extends ConsumerState<SendScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Choose people to share',
-                    style: TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Only the contacts you select will be offered.',
-                    style: TextStyle(color: AppColors.slate, fontSize: 15),
+                    'Choose contacts to share',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.6,
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Only the contacts you select will be transferred.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
                   // Handle Permission Denied State
                   if (senderState.permissionDenied) ...[
@@ -76,26 +81,37 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.contacts_outlined,
-                                size: 54,
-                                color: AppColors.teal,
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLight,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.contacts_outlined,
+                                    size: 32,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 18),
                               const Text(
-                                'Contacts Permission Needed',
+                                'Contacts Access Needed',
                                 style: TextStyle(
-                                  color: AppColors.navy,
+                                  color: AppColors.textPrimary,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'ContactQR requires contacts access so you can select which contacts you wish to transfer.',
+                                'ContactQR requires contacts permission so you can choose which contacts to share.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: AppColors.slate,
+                                  color: AppColors.textSecondary,
                                   fontSize: 14,
                                   height: 1.4,
                                 ),
@@ -103,12 +119,15 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                               const SizedBox(height: 24),
                               FilledButton.icon(
                                 onPressed: () => senderNotifier.loadContacts(),
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Try Again'),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Grant Access'),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.teal,
+                                  backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -117,7 +136,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                 child: const Text(
                                   'Open App Settings',
                                   style: TextStyle(
-                                    color: AppColors.navy,
+                                    color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -128,18 +147,18 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                       ),
                     ),
                   ] else if (senderState.isLoading) ...[
-                    // Loading Shimmer / Spinner
+                    // Loading Spinner
                     const Expanded(
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(color: AppColors.teal),
+                            CircularProgressIndicator(color: AppColors.primary),
                             SizedBox(height: 16),
                             Text(
                               'Loading contacts...',
                               style: TextStyle(
-                                color: AppColors.slate,
+                                color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -148,21 +167,31 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                       ),
                     ),
                   ] else ...[
-                    // Normal Contact List View
+                    // Search Bar
                     SearchBox(
                       controller: _searchController,
                       onChanged: (q) => senderNotifier.setSearchQuery(q),
                       hint: 'Search by name, number, or email',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+
+                    // Selection Control Bar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${selectedIds.length} of ${senderState.contacts.length} selected',
-                          style: const TextStyle(
-                            color: AppColors.slate,
-                            fontWeight: FontWeight.w600,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${selectedIds.length} of ${senderState.contacts.length} selected',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                         TextButton(
@@ -178,13 +207,17 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                 ? 'Clear all'
                                 : 'Select all',
                             style: const TextStyle(
-                              color: AppColors.teal,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w800,
+                              fontSize: 13,
                             ),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+
+                    // Contact List
                     Expanded(
                       child: filtered.isEmpty
                           ? Center(
@@ -192,9 +225,9 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(
-                                    Icons.person_search,
+                                    Icons.person_search_rounded,
                                     size: 48,
-                                    color: AppColors.slate,
+                                    color: AppColors.textMuted,
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
@@ -202,8 +235,9 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                         ? 'No contacts found on device'
                                         : 'No matching contacts for "${_searchController.text}"',
                                     style: const TextStyle(
-                                      color: AppColors.slate,
+                                      color: AppColors.textSecondary,
                                       fontSize: 14,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -211,7 +245,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                             )
                           : ListView.separated(
                               itemCount: filtered.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
                               itemBuilder: (_, index) {
                                 final contact = filtered[index];
                                 return ContactRow(
@@ -229,13 +263,16 @@ class _SendScreenState extends ConsumerState<SendScreen> {
           ),
           if (!senderState.permissionDenied && !senderState.isLoading)
             PrimaryButton(
-              label: 'Continue',
-              icon: Icons.arrow_forward,
+              label: 'Review Selection (${selectedIds.length})',
+              icon: Icons.arrow_forward_rounded,
               onPressed: () {
                 if (selectedIds.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select at least one contact to transfer.'),
+                    SnackBar(
+                      content: const Text('Please select at least one contact to transfer.'),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   );
                   return;
