@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSContactsUsageDescription</key>
+	<string>ContactQR needs access to your contacts to allow you to select contacts for transfer and save received contacts to your device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ContactQR uses your camera to scan QR codes for transferring contacts securely.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
