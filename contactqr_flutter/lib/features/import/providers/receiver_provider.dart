@@ -1,15 +1,22 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/contact_model.dart';
+import '../../../data/repositories/contact_repository.dart';
+import '../../contacts/providers/sender_provider.dart';
 
 class ReceiverState {
   const ReceiverState({
-    this.receivedContacts = demoContacts,
-    this.selectedIds = const {'1', '2', '3', '4', '5', '6'},
+    this.receivedContacts = const [],
+    this.selectedIds = const {},
     this.searchQuery = '',
     this.isImporting = false,
+    this.importProgress = 0,
     this.savedCount = 0,
     this.skippedCount = 0,
     this.failedCount = 0,
+    this.savedContacts = const [],
+    this.skippedContacts = const [],
+    this.failedContacts = const [],
     this.errorMessage,
   });
 
@@ -17,10 +24,16 @@ class ReceiverState {
   final Set<String> selectedIds;
   final String searchQuery;
   final bool isImporting;
+  final int importProgress;
   final int savedCount;
   final int skippedCount;
   final int failedCount;
+  final List<AppContact> savedContacts;
+  final List<AppContact> skippedContacts;
+  final List<AppContact> failedContacts;
   final String? errorMessage;
+
+  int get duplicateCount => receivedContacts.where((c) => c.isDuplicate).length;
 
   List<AppContact> get filteredContacts {
     if (searchQuery.trim().isEmpty) return receivedContacts;
@@ -28,7 +41,8 @@ class ReceiverState {
     return receivedContacts.where((c) {
       return c.name.toLowerCase().contains(query) ||
           c.phone.toLowerCase().contains(query) ||
-          (c.email?.toLowerCase().contains(query) ?? false);
+          (c.email?.toLowerCase().contains(query) ?? false) ||
+          (c.organization?.toLowerCase().contains(query) ?? false);
     }).toList();
   }
 
@@ -41,9 +55,13 @@ class ReceiverState {
     Set<String>? selectedIds,
     String? searchQuery,
     bool? isImporting,
+    int? importProgress,
     int? savedCount,
     int? skippedCount,
     int? failedCount,
+    List<AppContact>? savedContacts,
+    List<AppContact>? skippedContacts,
+    List<AppContact>? failedContacts,
     String? errorMessage,
   }) {
     return ReceiverState(
@@ -51,22 +69,39 @@ class ReceiverState {
       selectedIds: selectedIds ?? this.selectedIds,
       searchQuery: searchQuery ?? this.searchQuery,
       isImporting: isImporting ?? this.isImporting,
+      importProgress: importProgress ?? this.importProgress,
       savedCount: savedCount ?? this.savedCount,
       skippedCount: skippedCount ?? this.skippedCount,
       failedCount: failedCount ?? this.failedCount,
+      savedContacts: savedContacts ?? this.savedContacts,
+      skippedContacts: skippedContacts ?? this.skippedContacts,
+      failedContacts: failedContacts ?? this.failedContacts,
       errorMessage: errorMessage,
     );
   }
 }
 
 class ReceiverNotifier extends StateNotifier<ReceiverState> {
-  ReceiverNotifier() : super(const ReceiverState());
+  ReceiverNotifier(this._repository) : super(const ReceiverState());
+
+  final ContactRepository _repository;
+
+  ReceiverState get currentState => state;
 
   void setReceivedContacts(List<AppContact> contacts) {
+    // By default, select all non-duplicate contacts or all contacts if none are duplicates
     final allIds = contacts.map((c) => c.id).toSet();
     state = state.copyWith(
       receivedContacts: contacts,
       selectedIds: allIds,
+      isImporting: false,
+      importProgress: 0,
+      savedCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      savedContacts: const [],
+      skippedContacts: const [],
+      failedContacts: const [],
     );
   }
 
@@ -93,17 +128,61 @@ class ReceiverNotifier extends StateNotifier<ReceiverState> {
     state = state.copyWith(selectedIds: {});
   }
 
-  void setImportResults({
-    required int saved,
-    required int skipped,
-    required int failed,
-  }) {
+  void deselectDuplicates() {
+    final nonDuplicates = state.receivedContacts
+        .where((c) => !c.isDuplicate)
+        .map((c) => c.id)
+        .toSet();
+    state = state.copyWith(selectedIds: nonDuplicates);
+  }
+
+  /// Batch inserts selected contacts to native device address book.
+  Future<bool> importSelectedContacts() async {
+    final toSave = state.selectedContacts;
+    if (toSave.isEmpty) return false;
+
     state = state.copyWith(
-      savedCount: saved,
-      skippedCount: skipped,
-      failedCount: failed,
-      isImporting: false,
+      isImporting: true,
+      importProgress: 0,
+      errorMessage: null,
     );
+
+    final List<AppContact> saved = [];
+    final List<AppContact> failed = [];
+    final List<AppContact> skipped = state.receivedContacts
+        .where((c) => !state.selectedIds.contains(c.id))
+        .toList();
+
+    try {
+      for (int i = 0; i < toSave.length; i++) {
+        final contact = toSave[i];
+        final success = await _repository.insertContact(contact);
+        if (success) {
+          saved.add(contact);
+        } else {
+          failed.add(contact);
+        }
+        state = state.copyWith(importProgress: i + 1);
+      }
+
+      state = state.copyWith(
+        isImporting: false,
+        savedCount: saved.length,
+        skippedCount: skipped.length,
+        failedCount: failed.length,
+        savedContacts: saved,
+        skippedContacts: skipped,
+        failedContacts: failed,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Error during batch import: $e');
+      state = state.copyWith(
+        isImporting: false,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
   }
 
   void reset() {
@@ -112,5 +191,6 @@ class ReceiverNotifier extends StateNotifier<ReceiverState> {
 }
 
 final receiverProvider = StateNotifierProvider<ReceiverNotifier, ReceiverState>((ref) {
-  return ReceiverNotifier();
+  final repository = ref.watch(contactRepositoryProvider);
+  return ReceiverNotifier(repository);
 });

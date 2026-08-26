@@ -39,6 +39,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
     final receiverNotifier = ref.read(receiverProvider.notifier);
     final filtered = receiverState.filteredContacts;
     final selectedIds = receiverState.selectedIds;
+    final dupCount = receiverState.duplicateCount;
 
     return Shell(
       child: Column(
@@ -64,17 +65,63 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                     'The sender offered ${receiverState.receivedContacts.length} contacts. You decide what gets added.',
                     style: const TextStyle(color: AppColors.slate, fontSize: 15),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // Duplicate Detection Warning Banner
+                  if (dupCount > 0)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.amber.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: AppColors.amber, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '$dupCount duplicate contact${dupCount > 1 ? 's' : ''} detected in your address book.',
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => receiverNotifier.deselectDuplicates(),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Skip All',
+                              style: TextStyle(
+                                color: AppColors.amber,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   SearchBox(
                     controller: _searchController,
                     onChanged: (q) => receiverNotifier.setSearchQuery(q),
                     hint: 'Search received contacts',
                   ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${selectedIds.length} selected',
+                        '${selectedIds.length} of ${receiverState.receivedContacts.length} selected',
                         style: const TextStyle(
                           color: AppColors.slate,
                           fontWeight: FontWeight.w600,
@@ -126,7 +173,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
             ),
           ),
           PrimaryButton(
-            label: 'Save selected contacts',
+            label: selectedIds.isEmpty ? 'Select Contacts' : 'Save ${selectedIds.length} Contacts',
             icon: Icons.save_alt,
             onPressed: () {
               if (selectedIds.isEmpty) {
@@ -137,6 +184,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
               }
               showModalBottomSheet(
                 context: context,
+                isDismissible: false,
                 backgroundColor: AppColors.ivory,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(26)),

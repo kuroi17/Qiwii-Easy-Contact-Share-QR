@@ -4,6 +4,7 @@ import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../core/widgets/summary_row.dart';
+import '../../../data/models/contact_model.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({
@@ -11,11 +12,17 @@ class ResultScreen extends StatelessWidget {
     required this.count,
     this.skippedCount = 0,
     this.failedCount = 0,
+    this.savedContacts = const [],
+    this.skippedContacts = const [],
+    this.failedContacts = const [],
   });
 
   final int count;
   final int skippedCount;
   final int failedCount;
+  final List<AppContact> savedContacts;
+  final List<AppContact> skippedContacts;
+  final List<AppContact> failedContacts;
 
   @override
   Widget build(BuildContext context) => Shell(
@@ -23,37 +30,45 @@ class ResultScreen extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 65, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
             child: Column(
               children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 72),
-                const SizedBox(height: 22),
-                const Text(
-                  'Transfer complete',
-                  style: TextStyle(
+                Icon(
+                  failedCount > 0 && count == 0 ? Icons.error_outline : Icons.check_circle,
+                  color: failedCount > 0 && count == 0 ? Colors.red : AppColors.success,
+                  size: 72,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  failedCount > 0 && count == 0 ? 'Import Failed' : 'Transfer Complete',
+                  style: const TextStyle(
                     color: AppColors.navy,
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Your selected contacts are ready on this device.',
+                Text(
+                  count > 0
+                      ? 'Your selected contacts have been added directly to your device address book.'
+                      : 'No contacts were added.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.slate, fontSize: 15),
+                  style: const TextStyle(color: AppColors.slate, fontSize: 15),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 28),
+
+                // Metrics Box
                 CardBox(
                   child: Column(
                     children: [
                       SummaryRow(
-                        label: 'Saved',
+                        label: 'Saved to Device',
                         value: '$count contacts',
                         color: AppColors.success,
                       ),
                       const Divider(color: AppColors.border),
                       SummaryRow(
-                        label: 'Skipped',
+                        label: 'Skipped / Unselected',
                         value: '$skippedCount contacts',
                         color: AppColors.amber,
                       ),
@@ -68,7 +83,9 @@ class ResultScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
+
+                // Reassurance Banner
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(15),
@@ -76,9 +93,17 @@ class ResultScreen extends StatelessWidget {
                     color: AppColors.mint,
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: const Text(
-                    'Nothing was overwritten. You can safely repeat a transfer anytime.',
-                    style: TextStyle(color: AppColors.navy, fontSize: 13, height: 1.5),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.shield_outlined, color: AppColors.teal, size: 22),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Zero cloud retention. Nothing was overwritten on your device.',
+                          style: TextStyle(color: AppColors.navy, fontSize: 13, height: 1.4),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -42,11 +42,12 @@ List<AppContact> _parseAndSortRawContacts(List<Map<String, dynamic>> rawList) {
 }
 
 class ContactRepository {
-  const ContactRepository();
+  final bool isMock;
+  const ContactRepository({this.isMock = false});
 
   /// Requests permission to read device contacts.
   Future<bool> requestReadPermission() async {
-    if (kIsWeb) return true;
+    if (kIsWeb || isMock) return true;
     try {
       final status = await fc.FlutterContacts.permissions.request(fc.PermissionType.read);
       return status == fc.PermissionStatus.granted;
@@ -58,7 +59,7 @@ class ContactRepository {
 
   /// Requests permission to write to device contacts.
   Future<bool> requestWritePermission() async {
-    if (kIsWeb) return true;
+    if (kIsWeb || isMock) return true;
     try {
       final status = await fc.FlutterContacts.permissions.request(fc.PermissionType.readWrite);
       return status == fc.PermissionStatus.granted;
@@ -70,8 +71,8 @@ class ContactRepository {
 
   /// Fetches device contacts, parsing and sorting in a background Isolate.
   Future<List<AppContact>> getDeviceContacts() async {
-    if (kIsWeb) {
-      // In web environments, return demo contacts for testing
+    if (kIsWeb || isMock) {
+      // In web or mock environments, return demo contacts for testing
       return List<AppContact>.from(demoContacts);
     }
 
@@ -124,8 +125,7 @@ class ContactRepository {
 
   /// Writes a single AppContact to the native device address book.
   Future<bool> insertContact(AppContact contact) async {
-    if (kIsWeb) {
-      await Future.delayed(const Duration(milliseconds: 100));
+    if (kIsWeb || isMock) {
       return true;
     }
 
