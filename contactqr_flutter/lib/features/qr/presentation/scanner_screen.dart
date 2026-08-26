@@ -10,8 +10,11 @@ import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../data/models/contact_model.dart';
+import '../../../data/models/transfer_session_model.dart';
+import '../../contacts/providers/sender_provider.dart';
 import '../../import/presentation/received_screen.dart';
 import '../../import/providers/receiver_provider.dart';
+import '../../transfer/providers/transfer_provider.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -23,8 +26,10 @@ class ScannerScreen extends ConsumerStatefulWidget {
 class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTickerProviderStateMixin {
   MobileScannerController? _controller;
   bool _isProcessing = false;
+  bool _isDownloading = false;
   bool _torchEnabled = false;
   bool _permissionDenied = false;
+  String _downloadStatus = 'Connecting to sender...';
   late AnimationController _animController;
 
   @override
@@ -79,7 +84,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     }
   }
 
-  void _processQrString(String rawValue) {
+  Future<void> _processQrString(String rawValue) async {
     if (_isProcessing) return;
     _isProcessing = true;
 
@@ -87,16 +92,31 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       HapticFeedback.mediumImpact();
       final session = QrCodec.decode(rawValue);
 
-      // Check if session contains direct payload
       List<AppContact> contacts = [];
-      if (session.directPayload != null && session.directPayload!.isNotEmpty) {
-        contacts = QrCodec.decodeDirectPayload(session.directPayload);
+
+      // TIER 1: Direct QR Payload mode
+      if (session.mode == TransferMode.direct) {
+        if (session.directPayload != null && session.directPayload!.isNotEmpty) {
+          contacts = QrCodec.decodeDirectPayload(session.directPayload);
+        } else {
+          contacts = demoContacts.take(session.contactCount > 0 ? session.contactCount : 6).toList();
+        }
       } else {
-        // Mock / placeholder contacts matching count if no direct payload
-        contacts = demoContacts.take(session.contactCount > 0 ? session.contactCount : 6).toList();
+        // TIER 2: Bulk Local Network Transfer mode
+        setState(() {
+          _isDownloading = true;
+          _downloadStatus = 'Downloading ${session.contactCount} contacts from sender...';
+        });
+
+        final client = ref.read(transferClientProvider);
+        contacts = await client.fetchContactsFromSender(session);
       }
 
-      ref.read(receiverProvider.notifier).setReceivedContacts(contacts);
+      // Flag duplicates against receiver's address book
+      final contactRepo = ref.read(contactRepositoryProvider);
+      final flaggedContacts = await contactRepo.flagDuplicates(contacts);
+
+      ref.read(receiverProvider.notifier).setReceivedContacts(flaggedContacts);
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -106,13 +126,22 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       }
     } on QrExpiredException {
       _showErrorSnackBar('This transfer QR code has expired. Please ask the sender to generate a new code.');
-      _isProcessing = false;
+      _resetScanner();
     } on QrProtocolException catch (e) {
       _showErrorSnackBar(e.message);
-      _isProcessing = false;
+      _resetScanner();
     } catch (e) {
-      _showErrorSnackBar('Failed to read QR code: $e');
-      _isProcessing = false;
+      _showErrorSnackBar('Transfer failed: $e');
+      _resetScanner();
+    }
+  }
+
+  void _resetScanner() {
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _isDownloading = false;
+      });
     }
   }
 
@@ -128,7 +157,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   }
 
   void _simulateWebScan() {
-    // Generates a valid test direct QR payload for browser/testing
     final sampleEncoded = QrCodec.encodeDirectContacts(
       demoContacts.take(4).toList(),
       timeoutMinutes: 10,
@@ -150,19 +178,21 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
               child: Column(
                 children: [
                   const SizedBox(height: 24),
-                  const Text(
-                    'Scan the sender’s code',
-                    style: TextStyle(
+                  Text(
+                    _isDownloading ? 'Receiving Contacts...' : 'Scan the sender’s code',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Align the QR code inside the frame. Nothing is saved automatically.',
+                  Text(
+                    _isDownloading
+                        ? 'Transferring securely over local connection.'
+                        : 'Align the QR code inside the frame. Nothing is saved automatically.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.subtitleLight,
                       fontSize: 15,
                       height: 1.45,
@@ -170,7 +200,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                   ),
                   const SizedBox(height: 32),
 
-                  // Camera Scanner Frame
+                  // Camera Scanner or Downloading Progress View
                   if (_permissionDenied)
                     Expanded(
                       child: Center(
@@ -204,6 +234,35 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               TextButton(
                                 onPressed: () => openAppSettings(),
                                 child: const Text('Open App Settings', style: TextStyle(color: AppColors.navy)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_isDownloading)
+                    Expanded(
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: AppColors.darkNavy,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: AppColors.darkNavyBorder),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(color: AppColors.teal),
+                              const SizedBox(height: 24),
+                              Text(
+                                _downloadStatus,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ],
                           ),
@@ -288,45 +347,43 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                     ),
 
                   const SizedBox(height: 18),
-                  if (kIsWeb)
-                    const Text(
-                      'Tap frame to test with simulated 4-contact payload',
-                      style: TextStyle(color: AppColors.subtitleLight, fontSize: 12),
-                    )
-                  else
-                    const Text(
-                      'Point camera at the sender’s QR code',
-                      style: TextStyle(color: AppColors.subtitleLight, fontSize: 13),
+                  if (!_isDownloading)
+                    Text(
+                      kIsWeb
+                          ? 'Tap frame to test with simulated 4-contact payload'
+                          : 'Point camera at the sender’s QR code',
+                      style: const TextStyle(color: AppColors.subtitleLight, fontSize: 12),
                     ),
 
                   const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          _controller?.toggleTorch();
-                          setState(() => _torchEnabled = !_torchEnabled);
-                        },
-                        icon: Icon(
-                          _torchEnabled ? Icons.flash_on : Icons.flash_off,
-                          color: Colors.white,
+                  if (!_isDownloading)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            _controller?.toggleTorch();
+                            setState(() => _torchEnabled = !_torchEnabled);
+                          },
+                          icon: Icon(
+                            _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _torchEnabled ? 'Torch On' : 'Torch Off',
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(width: 32),
-                      const Icon(Icons.lock_outline, color: Colors.white, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '100% Private',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _torchEnabled ? 'Torch On' : 'Torch Off',
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        const SizedBox(width: 32),
+                        const Icon(Icons.lock_outline, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '100% Private',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 24),
                 ],
               ),

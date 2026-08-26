@@ -4,13 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/crypto_utils.dart';
+import '../../../core/utils/network_helper.dart';
 import '../../../core/utils/qr_codec.dart';
 import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../core/widgets/status_pill.dart';
 import '../../../data/models/contact_model.dart';
+import '../../../data/models/transfer_session_model.dart';
 import '../../contacts/providers/sender_provider.dart';
+import '../../transfer/services/local_transfer_server.dart';
 
 class QrScreen extends ConsumerStatefulWidget {
   const QrScreen({
@@ -28,23 +32,29 @@ class QrScreen extends ConsumerStatefulWidget {
 
 class _QrScreenState extends ConsumerState<QrScreen> {
   late DateTime _expiresAt;
-  late Timer _timer;
+  Timer? _timer;
   Duration _remaining = const Duration(minutes: 10);
-  late String _encodedQrData;
+  String? _encodedQrData;
   bool _isExpired = false;
+  TransferStatus _transferStatus = TransferStatus.waiting;
+  String _statusMessage = 'Waiting for receiver…';
+
+  LocalTransferServer? _server;
 
   @override
   void initState() {
     super.initState();
-    _initSession();
+    _startSession();
   }
 
-  void _initSession() {
+  Future<void> _startSession() async {
     _expiresAt = DateTime.now().add(const Duration(minutes: 10));
     _remaining = const Duration(minutes: 10);
     _isExpired = false;
+    _transferStatus = TransferStatus.waiting;
+    _statusMessage = 'Waiting for receiver…';
 
-    // Get selected contacts from props or provider
+    // Fetch contacts to transfer
     final contactsToTransfer = widget.selectedContacts ??
         ref.read(senderProvider).selectedContacts;
 
@@ -52,18 +62,68 @@ class _QrScreenState extends ConsumerState<QrScreen> {
         ? contactsToTransfer
         : demoContacts.take(widget.count).toList();
 
-    _encodedQrData = QrCodec.encodeDirectContacts(
-      actualContacts,
-      timeoutMinutes: 10,
-    );
+    // TIER 1: Direct QR mode for small transfers (<= 5 contacts)
+    if (actualContacts.length <= 5) {
+      final qrString = QrCodec.encodeDirectContacts(
+        actualContacts,
+        timeoutMinutes: 10,
+      );
 
+      setState(() {
+        _encodedQrData = qrString;
+      });
+    } else {
+      // TIER 2: Bulk local network transfer mode
+      final sessionId = 'p2p-${DateTime.now().millisecondsSinceEpoch}';
+      final sessionToken = CryptoUtils.generateRandomToken(length: 16);
+      final encryptionKey = CryptoUtils.generateSessionKey();
+      final localIp = await NetworkHelper.getLocalIpAddress();
+
+      _server = LocalTransferServer(
+        contacts: actualContacts,
+        sessionId: sessionId,
+        sessionToken: sessionToken,
+        encryptionKey: encryptionKey,
+        onStatusChanged: (status, msg) {
+          if (mounted) {
+            setState(() {
+              _transferStatus = status;
+              if (msg != null) _statusMessage = msg;
+            });
+          }
+        },
+      );
+
+      final port = await _server!.start();
+
+      final session = TransferSession(
+        sessionId: sessionId,
+        protocolVersion: 1,
+        mode: TransferMode.localNetwork,
+        contactCount: actualContacts.length,
+        createdAt: DateTime.now(),
+        expiresAt: _expiresAt,
+        host: localIp,
+        port: port,
+        token: sessionToken,
+        encryptionKey: encryptionKey,
+      );
+
+      setState(() {
+        _encodedQrData = QrCodec.encodeSession(session);
+      });
+    }
+
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       final diff = _expiresAt.difference(DateTime.now());
       if (diff.isNegative) {
-        _timer.cancel();
+        _timer?.cancel();
+        _server?.stop();
         setState(() {
           _isExpired = true;
           _remaining = Duration.zero;
+          _transferStatus = TransferStatus.expired;
         });
       } else {
         setState(() {
@@ -75,7 +135,8 @@ class _QrScreenState extends ConsumerState<QrScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
+    _server?.stop();
     super.dispose();
   }
 
@@ -86,17 +147,21 @@ class _QrScreenState extends ConsumerState<QrScreen> {
   }
 
   void _copyQrData() {
-    Clipboard.setData(ClipboardData(text: _encodedQrData));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transfer payload copied to clipboard.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    if (_encodedQrData != null) {
+      Clipboard.setData(ClipboardData(text: _encodedQrData!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transfer payload copied to clipboard.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSuccess = _transferStatus == TransferStatus.completed;
+
     return Shell(
       child: Column(
         children: [
@@ -108,11 +173,21 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                 children: [
                   const SizedBox(height: 20),
                   StatusPill(
-                    text: _isExpired ? 'EXPIRED' : 'READY TO CONNECT',
+                    text: _isExpired
+                        ? 'EXPIRED'
+                        : isSuccess
+                            ? 'TRANSFER COMPLETE'
+                            : _transferStatus == TransferStatus.transferring
+                                ? 'SENDING DATA...'
+                                : 'READY TO CONNECT',
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    _isExpired ? 'Transfer Expired' : 'Show this code',
+                    _isExpired
+                        ? 'Transfer Expired'
+                        : isSuccess
+                            ? 'Contacts Sent!'
+                            : 'Show this code',
                     style: const TextStyle(
                       color: AppColors.navy,
                       fontSize: 28,
@@ -123,7 +198,9 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                   Text(
                     _isExpired
                         ? 'This session has timed out. Please generate a new code.'
-                        : 'Ask the receiver to scan this QR code with ContactQR.',
+                        : isSuccess
+                            ? 'The receiver has securely received your contacts.'
+                            : 'Ask the receiver to scan this QR code with ContactQR.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.slate, fontSize: 15),
                   ),
@@ -154,7 +231,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
-                                  onPressed: () => setState(_initSession),
+                                  onPressed: _startSession,
                                   icon: const Icon(Icons.refresh),
                                   label: const Text('Generate New Code'),
                                   style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
@@ -162,11 +239,43 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                               ],
                             ),
                           )
+                        else if (isSuccess)
+                          Container(
+                            height: 220,
+                            width: 220,
+                            decoration: BoxDecoration(
+                              color: AppColors.mint,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, size: 64, color: AppColors.success),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Done!',
+                                  style: TextStyle(
+                                    color: AppColors.navy,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (_encodedQrData == null)
+                          const SizedBox(
+                            height: 220,
+                            width: 220,
+                            child: Center(
+                              child: CircularProgressIndicator(color: AppColors.teal),
+                            ),
+                          )
                         else
                           GestureDetector(
                             onTap: _copyQrData,
                             child: QrImageView(
-                              data: _encodedQrData,
+                              data: _encodedQrData!,
                               size: 220,
                               version: QrVersions.auto,
                               errorCorrectionLevel: QrErrorCorrectLevel.M,
@@ -195,14 +304,22 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (!_isExpired)
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.circle, size: 8, color: AppColors.teal),
-                        SizedBox(width: 8),
+                        Icon(
+                          isSuccess
+                              ? Icons.check_circle
+                              : _transferStatus == TransferStatus.transferring
+                                  ? Icons.sync
+                                  : Icons.circle,
+                          size: 14,
+                          color: isSuccess ? AppColors.success : AppColors.teal,
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          'Waiting for receiver…',
-                          style: TextStyle(color: AppColors.slate, fontSize: 14),
+                          _statusMessage,
+                          style: const TextStyle(color: AppColors.slate, fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -211,7 +328,10 @@ class _QrScreenState extends ConsumerState<QrScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+            onPressed: () {
+              _server?.stop();
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
             child: const Text(
               'Cancel transfer',
               style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700),
