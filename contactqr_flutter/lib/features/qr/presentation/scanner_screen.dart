@@ -42,18 +42,18 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    if (!kIsWeb) {
-      _initCamera();
-    }
+    _initCamera();
   }
 
   Future<void> _initCamera() async {
-    final status = await Permission.camera.request();
-    if (status.isPermanentlyDenied || status.isDenied) {
-      if (mounted) {
-        setState(() => _permissionDenied = true);
+    if (!kIsWeb) {
+      final status = await Permission.camera.request();
+      if (status.isPermanentlyDenied || status.isDenied) {
+        if (mounted) {
+          setState(() => _permissionDenied = true);
+        }
+        return;
       }
-      return;
     }
 
     _controller = MobileScannerController(
@@ -283,89 +283,116 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                       ),
                     )
                   else
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: Container(
-                            height: 310,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: AppColors.darkNavy,
-                              border: Border.all(color: AppColors.darkNavyBorder),
+                    Center(
+                      child: SizedBox(
+                        height: 310,
+                        width: kIsWeb ? 340 : double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
                               borderRadius: BorderRadius.circular(28),
-                            ),
-                            child: kIsWeb || _controller == null
-                                ? GestureDetector(
-                                    onTap: _simulateWebScan,
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            kIsWeb ? 'Click to simulate scan on Web' : 'Initializing camera...',
-                                            style: const TextStyle(color: AppColors.subtitleLight, fontSize: 13),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                : MobileScanner(
-                                    controller: _controller!,
-                                    onDetect: _handleBarcode,
-                                  ),
-                          ),
-                        ),
-
-                        // Animated scanning reticle
-                        IgnorePointer(
-                          child: AnimatedBuilder(
-                            animation: _animController,
-                            builder: (_, _) {
-                              return Container(
+                              child: Container(
                                 height: 310,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
+                                  color: AppColors.darkNavy,
+                                  border: Border.all(color: AppColors.darkNavyBorder),
                                   borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: AppColors.teal.withValues(alpha: 0.6),
-                                    width: 2,
-                                  ),
                                 ),
-                                child: Align(
-                                  alignment: Alignment(0, (_animController.value * 2) - 1),
-                                  child: Container(
-                                    height: 2,
-                                    width: 240,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.teal,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.teal.withValues(alpha: 0.8),
-                                          blurRadius: 10,
-                                          spreadRadius: 2,
+                                child: _controller == null
+                                    ? GestureDetector(
+                                        onTap: _simulateWebScan,
+                                        child: const Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
+                                              SizedBox(height: 12),
+                                              Text(
+                                                'Initializing webcam / camera...',
+                                                style: TextStyle(color: AppColors.subtitleLight, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
+                                      )
+                                    : MobileScanner(
+                                        controller: _controller!,
+                                        onDetect: _handleBarcode,
+                                        errorBuilder: (context, error) {
+                                          return GestureDetector(
+                                            onTap: _simulateWebScan,
+                                            child: Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  const Icon(Icons.videocam_off_outlined, size: 64, color: Colors.white70),
+                                                  const SizedBox(height: 12),
+                                                  Text(
+                                                    'Webcam: ${error.errorCode.name}',
+                                                    style: const TextStyle(color: AppColors.amber, fontSize: 13),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  const Text(
+                                                    'Click frame to simulate scan',
+                                                    style: TextStyle(color: AppColors.subtitleLight, fontSize: 12),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ),
+
+                            // Animated scanning reticle
+                            IgnorePointer(
+                              child: AnimatedBuilder(
+                                animation: _animController,
+                                builder: (_, _) {
+                                  return Container(
+                                    height: 310,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(28),
+                                      border: Border.all(
+                                        color: AppColors.teal.withValues(alpha: 0.6),
+                                        width: 2,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                    child: Align(
+                                      alignment: Alignment(0, (_animController.value * 2) - 1),
+                                      child: Container(
+                                        height: 2,
+                                        width: 240,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.teal,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.teal.withValues(alpha: 0.8),
+                                              blurRadius: 10,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
 
                   const SizedBox(height: 18),
                   if (!_isDownloading)
-                    Text(
-                      kIsWeb
-                          ? 'Tap frame to test with simulated 4-contact payload'
-                          : 'Point camera at the sender’s QR code',
-                      style: const TextStyle(color: AppColors.subtitleLight, fontSize: 12),
+                    const Text(
+                      'Point camera at the sender’s QR code',
+                      style: TextStyle(color: AppColors.subtitleLight, fontSize: 13),
                     ),
 
                   const Spacer(),
@@ -373,22 +400,24 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          onPressed: () {
-                            _controller?.toggleTorch();
-                            setState(() => _torchEnabled = !_torchEnabled);
-                          },
-                          icon: Icon(
-                            _torchEnabled ? Icons.flash_on : Icons.flash_off,
-                            color: Colors.white,
+                        if (!kIsWeb) ...[
+                          IconButton(
+                            onPressed: () {
+                              _controller?.toggleTorch();
+                              setState(() => _torchEnabled = !_torchEnabled);
+                            },
+                            icon: Icon(
+                              _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _torchEnabled ? 'Torch On' : 'Torch Off',
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                        const SizedBox(width: 32),
+                          const SizedBox(width: 4),
+                          Text(
+                            _torchEnabled ? 'Torch On' : 'Torch Off',
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          const SizedBox(width: 32),
+                        ],
                         const Icon(Icons.lock_outline, color: Colors.white, size: 20),
                         const SizedBox(width: 8),
                         const Text(

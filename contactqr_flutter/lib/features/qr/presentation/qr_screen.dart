@@ -282,8 +282,9 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                             ),
                           ),
                         const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
                               '${widget.count} contacts • ',
