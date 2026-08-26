@@ -1,0 +1,27 @@
+name: contactqr_flutter
+description: Privacy-first QR-assisted contact transfer for Android and iOS.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_contacts: ^2.3.1
+  mobile_scanner: ^7.1.2
+  qr_flutter: ^4.1.0
+  flutter_riverpod: ^2.6.1
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/contactqr_icon.png
