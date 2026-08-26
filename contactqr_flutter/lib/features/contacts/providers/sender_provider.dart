@@ -1,12 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../data/models/contact_model.dart';
+import '../../../data/repositories/contact_repository.dart';
+
+final contactRepositoryProvider = Provider<ContactRepository>((ref) {
+  return const ContactRepository();
+});
 
 class SenderState {
   const SenderState({
-    this.contacts = demoContacts,
-    this.selectedIds = const {'1', '2', '3'},
+    this.contacts = const [],
+    this.selectedIds = const {},
     this.searchQuery = '',
     this.isLoading = false,
+    this.permissionDenied = false,
     this.errorMessage,
   });
 
@@ -14,6 +21,7 @@ class SenderState {
   final Set<String> selectedIds;
   final String searchQuery;
   final bool isLoading;
+  final bool permissionDenied;
   final String? errorMessage;
 
   List<AppContact> get filteredContacts {
@@ -22,7 +30,8 @@ class SenderState {
     return contacts.where((c) {
       return c.name.toLowerCase().contains(query) ||
           c.phone.toLowerCase().contains(query) ||
-          (c.email?.toLowerCase().contains(query) ?? false);
+          (c.email?.toLowerCase().contains(query) ?? false) ||
+          (c.organization?.toLowerCase().contains(query) ?? false);
     }).toList();
   }
 
@@ -35,6 +44,7 @@ class SenderState {
     Set<String>? selectedIds,
     String? searchQuery,
     bool? isLoading,
+    bool? permissionDenied,
     String? errorMessage,
   }) {
     return SenderState(
@@ -42,13 +52,51 @@ class SenderState {
       selectedIds: selectedIds ?? this.selectedIds,
       searchQuery: searchQuery ?? this.searchQuery,
       isLoading: isLoading ?? this.isLoading,
+      permissionDenied: permissionDenied ?? this.permissionDenied,
       errorMessage: errorMessage,
     );
   }
 }
 
 class SenderNotifier extends StateNotifier<SenderState> {
-  SenderNotifier() : super(const SenderState());
+  SenderNotifier(this._repository) : super(const SenderState()) {
+    loadContacts();
+  }
+
+  final ContactRepository _repository;
+
+  /// Loads real device contacts using background isolate parsing.
+  Future<void> loadContacts() async {
+    state = state.copyWith(isLoading: true, permissionDenied: false, errorMessage: null);
+
+    try {
+      final fetched = await _repository.getDeviceContacts();
+      state = state.copyWith(
+        contacts: fetched,
+        selectedIds: {}, // clean default selection
+        isLoading: false,
+        permissionDenied: false,
+      );
+    } catch (e) {
+      if (e.toString().contains('CONTACTS_PERMISSION_DENIED')) {
+        state = state.copyWith(
+          isLoading: false,
+          permissionDenied: true,
+          errorMessage: 'Contacts access permission was denied.',
+        );
+      } else {
+        state = state.copyWith(
+          contacts: demoContacts,
+          isLoading: false,
+          errorMessage: e.toString(),
+        );
+      }
+    }
+  }
+
+  Future<void> openSettings() async {
+    await openAppSettings();
+  }
 
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
@@ -72,20 +120,9 @@ class SenderNotifier extends StateNotifier<SenderState> {
   void clearAll() {
     state = state.copyWith(selectedIds: {});
   }
-
-  void setContacts(List<AppContact> contacts) {
-    state = state.copyWith(contacts: contacts);
-  }
-
-  void setLoading(bool loading) {
-    state = state.copyWith(isLoading: loading);
-  }
-
-  void setError(String? error) {
-    state = state.copyWith(errorMessage: error);
-  }
 }
 
 final senderProvider = StateNotifierProvider<SenderNotifier, SenderState>((ref) {
-  return SenderNotifier();
+  final repository = ref.watch(contactRepositoryProvider);
+  return SenderNotifier(repository);
 });
