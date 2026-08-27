@@ -13,7 +13,7 @@ class Shell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: dark ? AppColors.navy : AppColors.ivory,
+    backgroundColor: dark ? AppColors.darkCanvas : AppColors.canvas,
     body: SafeArea(child: child),
   );
 }

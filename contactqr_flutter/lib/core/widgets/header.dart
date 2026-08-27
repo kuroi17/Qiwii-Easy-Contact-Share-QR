@@ -7,35 +7,42 @@ class Header extends StatelessWidget {
     required this.title,
     this.light = false,
     this.onBack,
+    this.trailing,
   });
 
   final String title;
   final bool light;
   final VoidCallback? onBack;
+  final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      IconButton(
-        onPressed: onBack ?? () => Navigator.pop(context),
-        icon: Icon(
-          Icons.arrow_back_ios_new,
-          size: 18,
-          color: light ? Colors.white : AppColors.navy,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: onBack ?? () => Navigator.pop(context),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            size: 18,
+            color: light ? Colors.white70 : AppColors.ink2,
+          ),
         ),
-      ),
-      Expanded(
-        child: Center(
+        Expanded(
           child: Text(
             title,
             style: TextStyle(
-              color: light ? Colors.white : AppColors.navy,
-              fontWeight: FontWeight.w800,
+              color: light ? Colors.white : AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-      ),
-      const SizedBox(width: 48),
-    ],
+        if (trailing != null)
+          trailing!
+        else
+          const SizedBox(width: 48),
+      ],
+    ),
   );
 }
