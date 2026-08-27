@@ -15,7 +15,7 @@ void main() {
     expect(find.text('ContactQR'), findsOneWidget);
     expect(find.text('Send contacts'), findsOneWidget);
     expect(find.text('Receive contacts'), findsOneWidget);
-    expect(find.text('No accounts. No cloud.'), findsOneWidget);
+    expect(find.text('Zero cloud. Nothing leaves your device.'), findsOneWidget);
   });
 
   test('AppContact model generates initials correctly', () {
