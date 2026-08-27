@@ -73,19 +73,18 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.amber.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+                        color: AppColors.accentTint,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: AppColors.amber, size: 22),
+                          const Icon(Icons.info_outline, color: AppColors.accent, size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               '$dupCount duplicate contact${dupCount > 1 ? 's' : ''} detected in your address book.',
                               style: const TextStyle(
-                                color: AppColors.navy,
+                                color: AppColors.ink,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -101,8 +100,8 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                             child: const Text(
                               'Skip All',
                               style: TextStyle(
-                                color: AppColors.amber,
-                                fontWeight: FontWeight.w800,
+                                color: AppColors.accent,
+                                fontWeight: FontWeight.w700,
                                 fontSize: 13,
                               ),
                             ),
@@ -140,8 +139,8 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                               ? 'Clear all'
                               : 'Select all',
                           style: const TextStyle(
-                            color: AppColors.teal,
-                            fontWeight: FontWeight.w800,
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -157,7 +156,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                           )
                         : ListView.separated(
                             itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 8),
+                            separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                             itemBuilder: (_, index) {
                               final contact = filtered[index];
                               return ContactRow(
@@ -185,7 +184,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
               showModalBottomSheet(
                 context: context,
                 isDismissible: false,
-                backgroundColor: AppColors.ivory,
+                backgroundColor: AppColors.canvas,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
                 ),
