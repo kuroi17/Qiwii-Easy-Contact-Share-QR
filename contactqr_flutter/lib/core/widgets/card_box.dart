@@ -6,19 +6,20 @@ class CardBox extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.color,
   });
 
   final Widget child;
   final EdgeInsets padding;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     padding: padding,
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
+      color: color ?? AppColors.surface,
+      borderRadius: BorderRadius.circular(16),
     ),
     child: child,
   );

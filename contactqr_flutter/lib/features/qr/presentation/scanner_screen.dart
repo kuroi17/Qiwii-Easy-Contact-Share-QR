@@ -6,7 +6,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/qr_codec.dart';
-import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../core/widgets/transfer_error_dialog.dart';
@@ -192,61 +191,66 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    _isDownloading ? 'Receiving Contacts...' : 'Scan the sender’s code',
+                    _isDownloading ? 'Receiving contacts...' : 'Scan the sender’s code',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: -0.6,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _isDownloading
                         ? 'Transferring securely over local connection.'
-                        : 'Align the QR code inside the frame. Nothing is saved automatically.',
-                    textAlign: TextAlign.center,
+                        : 'Align the QR code within the frame.',
                     style: const TextStyle(
-                      color: AppColors.subtitleLight,
-                      fontSize: 15,
+                      color: AppColors.darkSubtitle,
+                      fontSize: 14,
                       height: 1.45,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
                   // Camera Scanner or Downloading Progress View
                   if (_permissionDenied)
                     Expanded(
                       child: Center(
-                        child: CardBox(
+                        child: Container(
                           padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.darkSurface,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.camera_alt_outlined, size: 54, color: AppColors.teal),
+                              const Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.accent),
                               const SizedBox(height: 16),
                               const Text(
-                                'Camera Access Needed',
+                                'Camera access needed',
                                 style: TextStyle(
-                                  color: AppColors.navy,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'ContactQR requires camera access to scan the transfer QR code.',
+                                'ContactQR needs the camera to scan the transfer QR code.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.slate, fontSize: 14),
+                                style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
                               ),
                               const SizedBox(height: 20),
                               FilledButton(
                                 onPressed: _initCamera,
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
+                                style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
                                 child: const Text('Grant Access'),
                               ),
                               TextButton(
                                 onPressed: () => openAppSettings(),
-                                child: const Text('Open App Settings', style: TextStyle(color: AppColors.navy)),
+                                child: const Text('Open settings', style: TextStyle(color: AppColors.darkSubtitle)),
                               ),
                             ],
                           ),
@@ -282,147 +286,125 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                         ),
                       ),
                     )
-                  else
-                    Center(
-                      child: SizedBox(
-                        height: 310,
-                        width: kIsWeb ? 340 : double.infinity,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(28),
-                              child: Container(
-                                height: 310,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: AppColors.darkNavy,
-                                  border: Border.all(color: AppColors.darkNavyBorder),
-                                  borderRadius: BorderRadius.circular(28),
-                                ),
-                                child: _controller == null
-                                    ? GestureDetector(
-                                        onTap: _simulateWebScan,
-                                        child: const Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
-                                              SizedBox(height: 12),
-                                              Text(
-                                                'Initializing webcam / camera...',
-                                                style: TextStyle(color: AppColors.subtitleLight, fontSize: 13),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                    : MobileScanner(
-                                        controller: _controller!,
-                                        onDetect: _handleBarcode,
-                                        errorBuilder: (context, error) {
-                                          return GestureDetector(
-                                            onTap: _simulateWebScan,
-                                            child: Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  const Icon(Icons.videocam_off_outlined, size: 64, color: Colors.white70),
-                                                  const SizedBox(height: 12),
-                                                  Text(
-                                                    'Webcam: ${error.errorCode.name}',
-                                                    style: const TextStyle(color: AppColors.amber, fontSize: 13),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  const Text(
-                                                    'Click frame to simulate scan',
-                                                    style: TextStyle(color: AppColors.subtitleLight, fontSize: 12),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                   else
+                    // Camera Scanner View
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              width: double.infinity,
+                              decoration: const BoxDecoration(
+                                color: AppColors.darkSurface,
                               ),
-                            ),
-
-                            // Animated scanning reticle
-                            IgnorePointer(
-                              child: AnimatedBuilder(
-                                animation: _animController,
-                                builder: (_, _) {
-                                  return Container(
-                                    height: 310,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(28),
-                                      border: Border.all(
-                                        color: AppColors.teal.withValues(alpha: 0.6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment(0, (_animController.value * 2) - 1),
-                                      child: Container(
-                                        height: 2,
-                                        width: 240,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.teal,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.teal.withValues(alpha: 0.8),
-                                              blurRadius: 10,
-                                              spreadRadius: 2,
+                              child: _controller == null
+                                  ? GestureDetector(
+                                      onTap: _simulateWebScan,
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
+                                            SizedBox(height: 12),
+                                            Text(
+                                              'Initializing camera...',
+                                              style: TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
                                             ),
                                           ],
                                         ),
                                       ),
+                                    )
+                                  : MobileScanner(
+                                      controller: _controller!,
+                                      onDetect: _handleBarcode,
+                                      errorBuilder: (context, error) {
+                                        return GestureDetector(
+                                          onTap: _simulateWebScan,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Icon(Icons.videocam_off_outlined, size: 64, color: Colors.white70),
+                                                const SizedBox(height: 12),
+                                                Text(
+                                                  'Webcam: ${error.errorCode.name}',
+                                                  style: const TextStyle(color: AppColors.accent, fontSize: 13),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                const Text(
+                                                  'Tap to simulate scan',
+                                                  style: TextStyle(color: AppColors.darkSubtitle, fontSize: 12),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
+                            ),
+                          ),
+
+                          // Corner bracket reticle (center of frame)
+                          Center(
+                            child: SizedBox(
+                              width: 220,
+                              height: 220,
+                              child: CustomPaint(
+                                painter: _CornerBracketPainter(
+                                  color: AppColors.accent,
+                                  bracketLength: 28,
+                                  strokeWidth: 3,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+
+                          // Floating torch button (top-right)
+                          if (!kIsWeb)
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _controller?.toggleTorch();
+                                  setState(() => _torchEnabled = !_torchEnabled);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black45,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Icon(
+                                    _torchEnabled ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                                    color: _torchEnabled ? AppColors.accent : Colors.white70,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
-                  const SizedBox(height: 18),
-                  if (!_isDownloading)
-                    const Text(
-                      'Point camera at the sender’s QR code',
-                      style: TextStyle(color: AppColors.subtitleLight, fontSize: 13),
-                    ),
-
-                  const Spacer(),
+                  const SizedBox(height: 16),
                   if (!_isDownloading)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (!kIsWeb) ...[
-                          IconButton(
-                            onPressed: () {
-                              _controller?.toggleTorch();
-                              setState(() => _torchEnabled = !_torchEnabled);
-                            },
-                            icon: Icon(
-                              _torchEnabled ? Icons.flash_on : Icons.flash_off,
-                              color: Colors.white,
-                            ),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _torchEnabled ? 'Torch On' : 'Torch Off',
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                          ),
-                          const SizedBox(width: 32),
-                        ],
-                        const Icon(Icons.lock_outline, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
+                        ),
+                        const SizedBox(width: 6),
                         const Text(
-                          '100% Private',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
+                          'Nothing saved automatically',
+                          style: TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
                         ),
                       ],
                     ),
@@ -435,4 +417,46 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       ),
     );
   }
+}
+
+/// Draws 4 L-shaped corner brackets as a scan reticle
+class _CornerBracketPainter extends CustomPainter {
+  const _CornerBracketPainter({
+    required this.color,
+    this.bracketLength = 24,
+    this.strokeWidth = 3,
+  });
+
+  final Color color;
+  final double bracketLength;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final w = size.width;
+    final h = size.height;
+    final bl = bracketLength;
+
+    // Top-left
+    canvas.drawLine(Offset(0, bl), Offset(0, 0), paint);
+    canvas.drawLine(Offset(0, 0), Offset(bl, 0), paint);
+    // Top-right
+    canvas.drawLine(Offset(w - bl, 0), Offset(w, 0), paint);
+    canvas.drawLine(Offset(w, 0), Offset(w, bl), paint);
+    // Bottom-left
+    canvas.drawLine(Offset(0, h - bl), Offset(0, h), paint);
+    canvas.drawLine(Offset(0, h), Offset(bl, h), paint);
+    // Bottom-right
+    canvas.drawLine(Offset(w - bl, h), Offset(w, h), paint);
+    canvas.drawLine(Offset(w, h - bl), Offset(w, h), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

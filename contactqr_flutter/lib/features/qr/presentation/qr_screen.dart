@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/crypto_utils.dart';
 import '../../../core/utils/network_helper.dart';
 import '../../../core/utils/qr_codec.dart';
-import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../core/widgets/status_pill.dart';
@@ -163,164 +162,148 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     final isSuccess = _transferStatus == TransferStatus.completed;
 
     return Shell(
+      dark: true,
       child: Column(
         children: [
-          const Header(title: 'Transfer'),
+          Header(title: 'Transfer', light: true),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 28),
                   StatusPill(
                     text: _isExpired
                         ? 'EXPIRED'
                         : isSuccess
                             ? 'TRANSFER COMPLETE'
                             : _transferStatus == TransferStatus.transferring
-                                ? 'SENDING DATA...'
+                                ? 'SENDING DATA'
                                 : 'READY TO CONNECT',
+                    active: !_isExpired,
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    _isExpired
-                        ? 'Transfer Expired'
-                        : isSuccess
-                            ? 'Contacts Sent!'
-                            : 'Show this code',
-                    style: const TextStyle(
-                      color: AppColors.navy,
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Show this code\nto the receiver',
+                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: -0.6,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isExpired
-                        ? 'This session has timed out. Please generate a new code.'
-                        : isSuccess
-                            ? 'The receiver has securely received your contacts.'
-                            : 'Ask the receiver to scan this QR code with ContactQR.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.slate, fontSize: 15),
-                  ),
-                  const SizedBox(height: 24),
-                  CardBox(
-                    child: Column(
-                      children: [
-                        if (_isExpired)
-                          Container(
-                            height: 220,
-                            width: 220,
-                            decoration: BoxDecoration(
-                              color: AppColors.ivory,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.timer_off_outlined, size: 54, color: AppColors.amber),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Session Expired',
-                                  style: TextStyle(
-                                    color: AppColors.navy,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 16,
+                  const SizedBox(height: 28),
+                  // QR White Card on dark background
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: _isExpired
+                          ? SizedBox(
+                              height: 200,
+                              width: 200,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.timer_off_outlined, size: 48, color: AppColors.accent),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Expired',
+                                    style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w700, fontSize: 16),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                FilledButton.icon(
-                                  onPressed: _startSession,
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Generate New Code'),
-                                  style: FilledButton.styleFrom(backgroundColor: AppColors.teal),
-                                ),
-                              ],
-                            ),
-                          )
-                        else if (isSuccess)
-                          Container(
-                            height: 220,
-                            width: 220,
-                            decoration: BoxDecoration(
-                              color: AppColors.mint,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle, size: 64, color: AppColors.success),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Done!',
-                                  style: TextStyle(
-                                    color: AppColors.navy,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
+                                  const SizedBox(height: 16),
+                                  TextButton(
+                                    onPressed: _startSession,
+                                    child: const Text('Generate new code'),
                                   ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else if (_encodedQrData == null)
-                          const SizedBox(
-                            height: 220,
-                            width: 220,
-                            child: Center(
-                              child: CircularProgressIndicator(color: AppColors.teal),
-                            ),
-                          )
-                        else
-                          GestureDetector(
-                            onTap: _copyQrData,
-                            child: QrImageView(
-                              data: _encodedQrData!,
-                              size: 220,
-                              version: QrVersions.auto,
-                              errorCorrectionLevel: QrErrorCorrectLevel.M,
-                            ),
-                          ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '${widget.count} contacts • ',
-                              style: const TextStyle(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              _isExpired ? 'Expired' : 'Expires in ${_formatDuration(_remaining)}',
-                              style: TextStyle(
-                                color: _isExpired ? Colors.red : AppColors.teal,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
+                                ],
                               ),
-                            ),
-                          ],
+                            )
+                          : isSuccess
+                              ? const SizedBox(
+                                  height: 200,
+                                  width: 200,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle_rounded, size: 64, color: AppColors.success),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        'Contacts sent!',
+                                        style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w700, fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _encodedQrData == null
+                                  ? const SizedBox(
+                                      height: 200,
+                                      width: 200,
+                                      child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                                    )
+                                  : GestureDetector(
+                                      onTap: _copyQrData,
+                                      child: QrImageView(
+                                        data: _encodedQrData!,
+                                        size: 220,
+                                        version: QrVersions.auto,
+                                        errorCorrectionLevel: QrErrorCorrectLevel.M,
+                                      ),
+                                    ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Progress bar countdown
+                  if (!_isExpired && !isSuccess) ...[
+                    Row(
+                      children: [
+                        Text(
+                          '${widget.count} contact${widget.count == 1 ? '' : 's'}',
+                          style: const TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _formatDuration(_remaining),
+                          style: const TextStyle(color: AppColors.darkSubtitle, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _remaining.inSeconds / (10 * 60),
+                        backgroundColor: AppColors.darkBorder,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+                        minHeight: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Animated pulse status
                   if (!_isExpired)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          isSuccess
-                              ? Icons.check_circle
-                              : _transferStatus == TransferStatus.transferring
-                                  ? Icons.sync
-                                  : Icons.circle,
-                          size: 14,
-                          color: isSuccess ? AppColors.success : AppColors.teal,
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: isSuccess ? AppColors.success : AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           _statusMessage,
-                          style: const TextStyle(color: AppColors.slate, fontSize: 14, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
                         ),
                       ],
                     ),
@@ -328,17 +311,19 @@ class _QrScreenState extends ConsumerState<QrScreen> {
               ),
             ),
           ),
-          TextButton(
-            onPressed: () {
-              _server?.stop();
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
-            child: const Text(
-              'Cancel transfer',
-              style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: TextButton(
+              onPressed: () {
+                _server?.stop();
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+              child: const Text(
+                'Cancel transfer',
+                style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
