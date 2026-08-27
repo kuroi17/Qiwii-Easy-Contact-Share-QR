@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.ivory,
+      scaffoldBackgroundColor: AppColors.canvas,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.teal,
-        primary: AppColors.teal,
-        secondary: AppColors.navy,
-        surface: AppColors.ivory,
+        seedColor: AppColors.accent,
+        primary: AppColors.accent,
+        secondary: AppColors.ink,
+        surface: AppColors.canvas,
       ),
-      fontFamilyFallback: const ['Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial'],
+    );
+
+    // Apply Plus Jakarta Sans globally
+    return base.copyWith(
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
+        bodyColor: AppColors.ink,
+        displayColor: AppColors.ink,
+      ),
     );
   }
 }
