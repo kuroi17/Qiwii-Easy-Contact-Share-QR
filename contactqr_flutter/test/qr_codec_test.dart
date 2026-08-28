@@ -20,7 +20,7 @@ void main() {
       );
 
       final encoded = QrCodec.encodeSession(originalSession);
-      expect(encoded.startsWith('contactqr://'), true);
+      expect(encoded.startsWith('qiwii://'), true);
 
       final decoded = QrCodec.decode(encoded);
       expect(decoded.sessionId, 'sess-12345');
@@ -52,6 +52,38 @@ void main() {
       expect(unpacked[1].name, 'Jordan Rivera');
     });
 
+    test('encodes and unpacks 4-digit PIN protected direct payload', () {
+      const contacts = [
+        AppContact(id: '1', name: 'Liam Vance', phone: '+14155550199', initials: 'LV'),
+      ];
+      const pin = '7890';
+
+      final encoded = QrCodec.encodeDirectContacts(contacts, pin: pin);
+      final session = QrCodec.decode(encoded);
+
+      expect(session.isPinProtected, true);
+      expect(session.pinSalt != null, true);
+
+      // Unpack with correct PIN
+      final unpacked = QrCodec.decodeDirectPayload(
+        session.directPayload,
+        pin: pin,
+        salt: session.pinSalt,
+      );
+      expect(unpacked.length, 1);
+      expect(unpacked[0].name, 'Liam Vance');
+
+      // Unpack with wrong PIN fails
+      expect(
+        () => QrCodec.decodeDirectPayload(
+          session.directPayload,
+          pin: '0000',
+          salt: session.pinSalt,
+        ),
+        throwsA(isA<QrProtocolException>()),
+      );
+    });
+
     test('throws QrExpiredException when QR code is expired', () {
       final expiredSession = TransferSession(
         sessionId: 'expired-123',
@@ -66,7 +98,7 @@ void main() {
       expect(() => QrCodec.decode(encoded), throwsA(isA<QrExpiredException>()));
     });
 
-    test('rejects unrecognized or non-ContactQR strings', () {
+    test('rejects unrecognized or non-Qiwii strings', () {
       expect(() => QrCodec.decode(''), throwsA(isA<QrProtocolException>()));
       expect(() => QrCodec.decode('https://google.com'), throwsA(isA<QrProtocolException>()));
       expect(() => QrCodec.decode('{"app":"otherapp"}'), throwsA(isA<QrProtocolException>()));

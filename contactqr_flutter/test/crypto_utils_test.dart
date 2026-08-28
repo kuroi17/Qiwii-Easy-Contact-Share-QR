@@ -31,6 +31,36 @@ void main() {
       expect(decrypted, plainText);
     });
 
+    test('derives consistent encryption key from 4-digit PIN', () {
+      const pin = '4821';
+      const salt = 'random-salt-1234';
+
+      final key1 = CryptoUtils.deriveKeyFromPin(pin, salt);
+      final key2 = CryptoUtils.deriveKeyFromPin(pin, salt);
+      expect(key1, key2);
+
+      const wrongPin = '4822';
+      final wrongKey = CryptoUtils.deriveKeyFromPin(wrongPin, salt);
+      expect(key1, isNot(wrongKey));
+    });
+
+    test('encrypts and decrypts payload using PIN-derived key', () {
+      const plainText = '{"name":"Maya Chen","phone":"+14155550198"}';
+      const pin = '9182';
+      const salt = 'pin-salt-xyz';
+
+      final key = CryptoUtils.deriveKeyFromPin(pin, salt);
+      final encrypted = CryptoUtils.encryptPayload(plainText, key);
+
+      // Decrypt with correct PIN
+      final decrypted = CryptoUtils.decryptPayload(encrypted, key);
+      expect(decrypted, plainText);
+
+      // Decrypt with wrong PIN key fails
+      final wrongKey = CryptoUtils.deriveKeyFromPin('0000', salt);
+      expect(() => CryptoUtils.decryptPayload(encrypted, wrongKey), throwsA(isA<CryptoException>()));
+    });
+
     test('throws CryptoException when tampered with or wrong key is provided', () {
       const plainText = '{"secret":"confidential"}';
       final key1 = CryptoUtils.generateSessionKey();

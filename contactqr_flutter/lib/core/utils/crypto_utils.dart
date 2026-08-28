@@ -30,6 +30,17 @@ class CryptoUtils {
     return sha256.convert(bytes).toString();
   }
 
+  /// Derives an AES-compatible encryption key from a 4-digit PIN and a salt using iterated HMAC-SHA256
+  static String deriveKeyFromPin(String pin, String salt) {
+    List<int> current = utf8.encode('$pin:$salt:qiwii_secure_pin_kdf');
+    final saltBytes = utf8.encode(salt);
+    for (int i = 0; i < 500; i++) {
+      final hmac = Hmac(sha256, saltBytes);
+      current = hmac.convert(current).bytes;
+    }
+    return base64UrlEncode(current).replaceAll('=', '');
+  }
+
   /// Encrypts a plaintext string with an ephemeral session key.
   /// Generates a random 16-byte IV, computes a stream cipher, and appends a SHA-256 HMAC tag.
   static String encryptPayload(String plainText, String key) {
@@ -91,7 +102,7 @@ class CryptoUtils {
       // Verify HMAC authentication tag
       final calculatedTag = Hmac(sha256, keyBytes).convert([...iv, ...cipherBytes]).bytes;
       if (!_constantTimeEquals(expectedTag, calculatedTag)) {
-        throw const CryptoException('Payload authentication failed. Data may have been tampered with.');
+        throw const CryptoException('Payload authentication failed. Invalid PIN or data tampered with.');
       }
 
       // Decrypt cipher stream

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../../data/models/contact_model.dart';
 import '../../data/models/transfer_session_model.dart';
+import 'crypto_utils.dart';
 
 class QrProtocolException implements Exception {
   final String message;
@@ -13,15 +14,22 @@ class QrExpiredException extends QrProtocolException {
   const QrExpiredException([super.message = 'This transfer QR code has expired.']);
 }
 
+class QrPinRequiredException extends QrProtocolException {
+  final TransferSession session;
+  const QrPinRequiredException(this.session, [super.message = 'This transfer is protected with a 4-digit PIN.']);
+}
+
 class QrCodec {
   static const String protocolScheme = 'contactqr://';
+  static const String qiwiiScheme = 'qiwii://';
   static const String protocolName = 'contactqr';
+  static const String qiwiiName = 'qiwii';
   static const int currentVersion = 1;
 
   /// Encodes a TransferSession into a QR-friendly string.
   static String encodeSession(TransferSession session) {
     final payload = {
-      'app': protocolName,
+      'app': qiwiiName,
       'v': session.protocolVersion,
       'mode': session.mode == TransferMode.direct ? 'direct' : 'p2p',
       'id': session.sessionId,
@@ -32,22 +40,37 @@ class QrCodec {
       if (session.token != null) 'token': session.token,
       if (session.encryptionKey != null) 'key': session.encryptionKey,
       if (session.directPayload != null) 'data': session.directPayload,
+      if (session.isPinProtected) 'pin': true,
+      if (session.pinSalt != null) 'salt': session.pinSalt,
     };
 
     final jsonString = jsonEncode(payload);
     final base64Payload = base64UrlEncode(utf8.encode(jsonString));
-    return '$protocolScheme$base64Payload';
+    return '$qiwiiScheme$base64Payload';
   }
 
-  /// Convenience method to generate a Direct QR transfer for small datasets (<= 5 contacts).
+  /// Convenience method to generate a Direct QR transfer for small datasets (<= 5 contacts), optionally PIN-protected.
   static String encodeDirectContacts(
     List<AppContact> contacts, {
     int timeoutMinutes = 10,
     String? customSessionId,
+    String? pin,
   }) {
     final contactsJson = contacts.map((c) => c.toJson()).toList();
     final dataString = jsonEncode(contactsJson);
-    final compressedData = base64UrlEncode(utf8.encode(dataString));
+
+    String compressedData;
+    String? pinSalt;
+    bool isPinProtected = false;
+
+    if (pin != null && pin.trim().isNotEmpty) {
+      pinSalt = CryptoUtils.generateRandomToken(length: 16);
+      final derivedKey = CryptoUtils.deriveKeyFromPin(pin.trim(), pinSalt);
+      compressedData = CryptoUtils.encryptPayload(dataString, derivedKey);
+      isPinProtected = true;
+    } else {
+      compressedData = base64UrlEncode(utf8.encode(dataString));
+    }
 
     final session = TransferSession(
       sessionId: customSessionId ?? 'direct-${DateTime.now().millisecondsSinceEpoch}',
@@ -57,6 +80,8 @@ class QrCodec {
       createdAt: DateTime.now(),
       expiresAt: DateTime.now().add(Duration(minutes: timeoutMinutes)),
       directPayload: compressedData,
+      isPinProtected: isPinProtected,
+      pinSalt: pinSalt,
     );
 
     return encodeSession(session);
@@ -69,7 +94,7 @@ class QrCodec {
     }
 
     // Check for legacy or plain demo format
-    if (rawData.startsWith('contactqr://session/demo-')) {
+    if (rawData.startsWith('contactqr://session/demo-') || rawData.startsWith('qiwii://session/demo-')) {
       final countStr = rawData.split('demo-').last;
       final count = int.tryParse(countStr) ?? 3;
       return TransferSession(
@@ -84,8 +109,16 @@ class QrCodec {
 
     String jsonString;
 
-    // Support contactqr:// protocol scheme
-    if (rawData.startsWith(protocolScheme)) {
+    // Support qiwii:// and contactqr:// protocol schemes
+    if (rawData.startsWith(qiwiiScheme)) {
+      final base64Payload = rawData.substring(qiwiiScheme.length);
+      try {
+        final decodedBytes = base64Url.decode(base64Payload);
+        jsonString = utf8.decode(decodedBytes);
+      } catch (e) {
+        throw const QrProtocolException('Invalid QR code data format.');
+      }
+    } else if (rawData.startsWith(protocolScheme)) {
       final base64Payload = rawData.substring(protocolScheme.length);
       try {
         final decodedBytes = base64Url.decode(base64Payload);
@@ -106,7 +139,8 @@ class QrCodec {
       throw const QrProtocolException('Corrupted QR code payload.');
     }
 
-    if (map['app'] != protocolName) {
+    final appName = map['app'] as String?;
+    if (appName != protocolName && appName != qiwiiName) {
       throw const QrProtocolException('Not a valid Qiwii transfer code.');
     }
 
@@ -139,18 +173,32 @@ class QrCodec {
       token: map['token'] as String?,
       encryptionKey: map['key'] as String?,
       directPayload: map['data'] as String?,
+      isPinProtected: map['pin'] as bool? ?? false,
+      pinSalt: map['salt'] as String?,
     );
   }
 
   /// Decodes direct contact payload if session contains embedded data.
-  static List<AppContact> decodeDirectPayload(String? base64Data) {
-    if (base64Data == null || base64Data.isEmpty) return [];
+  /// If [pin] is provided, uses PIN key derivation to decrypt the payload.
+  static List<AppContact> decodeDirectPayload(String? payloadData, {String? pin, String? salt}) {
+    if (payloadData == null || payloadData.isEmpty) return [];
 
     try {
-      final decodedJson = utf8.decode(base64Url.decode(base64Data));
-      final List<dynamic> list = jsonDecode(decodedJson) as List<dynamic>;
+      String jsonString;
+      if (pin != null && pin.trim().isNotEmpty && salt != null) {
+        final derivedKey = CryptoUtils.deriveKeyFromPin(pin.trim(), salt);
+        jsonString = CryptoUtils.decryptPayload(payloadData, derivedKey);
+      } else {
+        // Plain base64 decode
+        jsonString = utf8.decode(base64Url.decode(payloadData));
+      }
+
+      final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
       return list.map((item) => AppContact.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
+      if (pin != null) {
+        throw const QrProtocolException('Incorrect 4-digit PIN. Unable to unlock contacts.');
+      }
       throw const QrProtocolException('Failed to unpack embedded contact data.');
     }
   }
