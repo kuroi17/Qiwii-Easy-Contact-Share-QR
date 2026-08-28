@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
@@ -17,6 +18,7 @@ import '../../import/presentation/received_screen.dart';
 import '../../import/providers/receiver_provider.dart';
 import '../../transfer/providers/transfer_provider.dart';
 import '../../transfer/services/local_transfer_client.dart';
+import 'widgets/enter_pin_modal.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -29,55 +31,54 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   MobileScannerController? _controller;
   bool _isProcessing = false;
   bool _isDownloading = false;
-  bool _torchEnabled = false;
+  String _downloadStatus = 'Downloading contacts...';
   bool _permissionDenied = false;
-  String _downloadStatus = 'Connecting to sender...';
-  late AnimationController _animController;
+  bool _torchEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _initCamera();
+    _initScanner();
   }
 
-  Future<void> _initCamera() async {
-    if (!kIsWeb) {
-      final status = await Permission.camera.request();
-      if (status.isPermanentlyDenied || status.isDenied) {
-        if (mounted) {
-          setState(() => _permissionDenied = true);
-        }
-        return;
-      }
+  Future<void> _initScanner() async {
+    if (kIsWeb) {
+      _controller = MobileScannerController(
+        facing: CameraFacing.front,
+        torchEnabled: false,
+      );
+      if (mounted) setState(() {});
+      return;
     }
 
-    _controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-      torchEnabled: false,
-    );
-
-    if (mounted) {
-      setState(() => _permissionDenied = false);
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      _controller = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        facing: CameraFacing.back,
+        torchEnabled: false,
+      );
+      if (mounted) setState(() {});
+    } else {
+      if (mounted) {
+        setState(() {
+          _permissionDenied = true;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    _animController.dispose();
     _controller?.dispose();
     super.dispose();
   }
 
-  void _handleBarcode(BarcodeCapture capture) {
-    if (_isProcessing) return;
+  void _onDetect(BarcodeCapture capture) {
+    if (_isProcessing || _isDownloading) return;
 
-    for (final barcode in capture.barcodes) {
+    final barcodes = capture.barcodes;
+    for (final barcode in barcodes) {
       final rawValue = barcode.rawValue;
       if (rawValue != null && rawValue.isNotEmpty) {
         _processQrString(rawValue);
@@ -86,19 +87,126 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     }
   }
 
-  Future<void> _processQrString(String rawValue) async {
-    if (_isProcessing) return;
-    _isProcessing = true;
+  Future<void> _pickAndScanFromGallery() async {
+    if (_isProcessing || _isDownloading) return;
+
+    if (kIsWeb) {
+      // In web browser preview, simulate PIN-protected QR scan
+      _showWebSimulationPrompt();
+      return;
+    }
 
     try {
-      HapticFeedback.mediumImpact();
-      final session = QrCodec.decode(rawValue);
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isProcessing = true;
+      });
+
+      final barcodes = await _controller?.analyzeImage(pickedFile.path);
+
+      if (barcodes != null && barcodes.barcodes.isNotEmpty) {
+        final rawValue = barcodes.barcodes.first.rawValue;
+        if (rawValue != null && rawValue.isNotEmpty) {
+          await _processQrString(rawValue);
+          return;
+        }
+      }
+
+      _showErrorSnackBar('No QR code detected in this photo. Please select an image with a clear Qiwii QR code.');
+      _resetScanner();
+    } catch (e) {
+      _showErrorSnackBar('Please restart the app to enable gallery scanner: $e');
+      _resetScanner();
+    }
+  }
+
+  void _showWebSimulationPrompt() {
+    final samplePinProtected = QrCodec.encodeDirectContacts(
+      demoContacts.take(3).toList(),
+      timeoutMinutes: 10,
+      pin: '1234',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        title: const Text('Simulate Gallery QR Scan (Web)', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'In Chrome/Web mode, native mobile gallery is simulated.\n\n'
+          'Would you like to simulate scanning a PIN-protected QR code (Default PIN: 1234)?',
+          style: TextStyle(color: AppColors.darkSubtitle),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.darkSubtitle)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _processQrString(samplePinProtected);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('Simulate Scan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processQrString(String rawData) async {
+    setState(() {
+      _isProcessing = true;
+    });
+
+    HapticFeedback.mediumImpact();
+
+    try {
+      final session = QrCodec.decode(rawData);
 
       List<AppContact> contacts = [];
 
-      // TIER 1: Direct QR Payload mode
       if (session.mode == TransferMode.direct) {
-        if (session.directPayload != null && session.directPayload!.isNotEmpty) {
+        if (session.isPinProtected) {
+          // Prompt for 4-digit PIN with 5-attempt limit
+          final unlocked = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => EnterPinModal(
+              onPinSubmitted: (pin) async {
+                try {
+                  final decoded = QrCodec.decodeDirectPayload(
+                    session.directPayload,
+                    pin: pin,
+                    salt: session.pinSalt,
+                  );
+                  if (decoded.isNotEmpty) {
+                    contacts = decoded;
+                    return true;
+                  }
+                  return false;
+                } catch (e) {
+                  return false;
+                }
+              },
+            ),
+          );
+
+          if (unlocked != true) {
+            _resetScanner();
+            return;
+          }
+        } else if (session.directPayload != null && session.directPayload!.isNotEmpty) {
           contacts = QrCodec.decodeDirectPayload(session.directPayload);
         } else {
           contacts = demoContacts.take(session.contactCount > 0 ? session.contactCount : 6).toList();
@@ -190,7 +298,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Text(
                     _isDownloading ? 'Receiving contacts...' : 'Scan the sender’s code',
                     style: AppTextStyles.displayDark(
@@ -198,28 +306,48 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     _isDownloading
                         ? 'Transferring securely over local connection.'
-                        : 'Align the QR code within the frame.',
+                        : 'Align the QR code within the frame or upload from photos.',
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.darkSubtitle,
-                      fontSize: 14,
-                      height: 1.45,
+                      fontSize: 13.5,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
 
-                  // Camera Scanner or Downloading Progress View
-                  if (_permissionDenied)
+                  if (_isDownloading)
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(color: AppColors.accent),
+                            const SizedBox(height: 24),
+                            Text(
+                              _downloadStatus,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_permissionDenied)
                     Expanded(
                       child: Center(
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: AppColors.darkSurface,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.darkBorder),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -227,7 +355,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               const Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.accent),
                               const SizedBox(height: 16),
                               const Text(
-                                'Camera access needed',
+                                'Camera Access Needed',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -241,81 +369,41 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                                 style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
                               ),
                               const SizedBox(height: 20),
-                              FilledButton(
-                                onPressed: _initCamera,
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
-                                child: const Text('Grant Access'),
-                              ),
-                              TextButton(
-                                onPressed: () => openAppSettings(),
-                                child: const Text('Open settings', style: TextStyle(color: AppColors.darkSubtitle)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (_isDownloading)
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: AppColors.darkNavy,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: AppColors.darkNavyBorder),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(color: AppColors.teal),
-                              const SizedBox(height: 24),
-                              Text(
-                                _downloadStatus,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                              ElevatedButton(
+                                onPressed: openAppSettings,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
+                                child: const Text('Open Settings'),
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton.icon(
+                                onPressed: _pickAndScanFromGallery,
+                                icon: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                                label: const Text('Upload from Gallery instead', style: TextStyle(color: Colors.white)),
                               ),
                             ],
                           ),
                         ),
                       ),
                     )
-                   else
-                    // Camera Scanner View
+                  else
                     Expanded(
                       child: Stack(
                         children: [
+                          // Camera Preview Viewport
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(24),
                             child: Container(
                               width: double.infinity,
-                              decoration: const BoxDecoration(
-                                color: AppColors.darkSurface,
-                              ),
+                              color: Colors.black,
                               child: _controller == null
-                                  ? GestureDetector(
-                                      onTap: _simulateWebScan,
-                                      child: const Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
-                                            SizedBox(height: 12),
-                                            Text(
-                                              'Initializing camera...',
-                                              style: TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
+                                  ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
                                   : MobileScanner(
                                       controller: _controller!,
-                                      onDetect: _handleBarcode,
+                                      onDetect: _onDetect,
                                       errorBuilder: (context, error) {
                                         return GestureDetector(
                                           onTap: _simulateWebScan,
@@ -387,6 +475,40 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                     ),
 
                   const SizedBox(height: 16),
+
+                  // ── Upload QR from Gallery Button ──────────────────────
+                  if (!_isDownloading) ...[
+                    InkWell(
+                      onTap: _isProcessing ? null : _pickAndScanFromGallery,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.darkSurface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.darkBorder),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.photo_library_outlined, color: AppColors.accent, size: 20),
+                            SizedBox(width: 10),
+                            Text(
+                              'Upload QR from Gallery',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   if (!_isDownloading)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -406,7 +528,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                         ),
                       ],
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -452,7 +574,7 @@ class _CornerBracketPainter extends CustomPainter {
     canvas.drawLine(Offset(0, h), Offset(bl, h), paint);
     // Bottom-right
     canvas.drawLine(Offset(w - bl, h), Offset(w, h), paint);
-    canvas.drawLine(Offset(w, h - bl), Offset(w, h), paint);
+    canvas.drawLine(Offset(w, h), Offset(w, h - bl), paint);
   }
 
   @override

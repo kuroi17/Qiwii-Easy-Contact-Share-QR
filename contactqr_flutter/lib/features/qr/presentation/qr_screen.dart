@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/crypto_utils.dart';
@@ -15,6 +16,7 @@ import '../../../data/models/contact_model.dart';
 import '../../../data/models/transfer_session_model.dart';
 import '../../contacts/providers/sender_provider.dart';
 import '../../transfer/services/local_transfer_server.dart';
+import 'widgets/set_pin_modal.dart';
 
 class QrScreen extends ConsumerStatefulWidget {
   const QrScreen({
@@ -98,7 +100,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
 
       final session = TransferSession(
         sessionId: sessionId,
-        protocolVersion: 1,
+        protocolVersion: QrCodec.currentVersion,
         mode: TransferMode.localNetwork,
         contactCount: actualContacts.length,
         createdAt: DateTime.now(),
@@ -109,28 +111,85 @@ class _QrScreenState extends ConsumerState<QrScreen> {
         encryptionKey: encryptionKey,
       );
 
+      final qrString = QrCodec.encodeSession(session);
+
       setState(() {
-        _encodedQrData = QrCodec.encodeSession(session);
+        _encodedQrData = qrString;
       });
     }
 
+    // Start 1-second countdown ticker
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final diff = _expiresAt.difference(DateTime.now());
-      if (diff.isNegative) {
-        _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final now = DateTime.now();
+      if (now.isAfter(_expiresAt)) {
+        timer.cancel();
         _server?.stop();
         setState(() {
           _isExpired = true;
           _remaining = Duration.zero;
           _transferStatus = TransferStatus.expired;
+          _statusMessage = 'Transfer code expired';
         });
       } else {
         setState(() {
-          _remaining = diff;
+          _remaining = _expiresAt.difference(now);
         });
       }
     });
+  }
+
+  void _onShareWithPinPressed() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => SetPinModal(
+        onPinConfirmed: (pin) async {
+          final contactsToTransfer = widget.selectedContacts ??
+              ref.read(senderProvider).selectedContacts;
+
+          final actualContacts = contactsToTransfer.isNotEmpty
+              ? contactsToTransfer
+              : demoContacts.take(widget.count).toList();
+
+          // Generate PIN-protected encrypted payload
+          final pinProtectedPayload = QrCodec.encodeDirectContacts(
+            actualContacts,
+            timeoutMinutes: 10,
+            pin: pin,
+          );
+
+          final shareText = '🔐 Qiwii Secure Contact Transfer\n\n'
+              'I shared ${widget.count} contacts with you.\n'
+              'Unlock using the 4-digit PIN in Qiwii:\n\n'
+              '$pinProtectedPayload';
+
+          try {
+            await Share.share(
+              shareText,
+              subject: 'Qiwii Shared Contacts',
+            );
+          } catch (_) {
+            await Clipboard.setData(ClipboardData(text: shareText));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('PIN-encrypted link copied to clipboard! (Ready to paste in chat)'),
+                  backgroundColor: AppColors.accent,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -151,8 +210,8 @@ class _QrScreenState extends ConsumerState<QrScreen> {
       Clipboard.setData(ClipboardData(text: _encodedQrData!));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Transfer payload copied to clipboard.'),
-          duration: Duration(seconds: 2),
+          content: Text('QR transfer payload copied to clipboard'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -166,17 +225,15 @@ class _QrScreenState extends ConsumerState<QrScreen> {
       dark: true,
       child: Column(
         children: [
-          Header(title: 'Transfer', light: true),
+          const Header(title: 'Transfer', light: true),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 28),
                   StatusPill(
                     text: _isExpired
-                        ? 'EXPIRED'
+                        ? 'TRANSFER EXPIRED'
                         : isSuccess
                             ? 'TRANSFER COMPLETE'
                             : _transferStatus == TransferStatus.transferring
@@ -184,27 +241,29 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 : 'READY TO CONNECT',
                     active: !_isExpired,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Text(
                     'Show this code\nto the receiver',
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.displayDark(
                       fontSize: 26,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
+
                   // QR White Card on dark background
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: _isExpired
                           ? SizedBox(
-                              height: 200,
-                              width: 200,
+                              height: 190,
+                              width: 190,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -224,8 +283,8 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                             )
                           : isSuccess
                               ? const SizedBox(
-                                  height: 200,
-                                  width: 200,
+                                  height: 190,
+                                  width: 190,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -240,15 +299,15 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 )
                               : _encodedQrData == null
                                   ? const SizedBox(
-                                      height: 200,
-                                      width: 200,
+                                      height: 190,
+                                      width: 190,
                                       child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
                                     )
                                   : GestureDetector(
                                       onTap: _copyQrData,
                                       child: QrImageView(
                                         data: _encodedQrData!,
-                                        size: 220,
+                                        size: 200,
                                         version: QrVersions.auto,
                                         errorCorrectionLevel: QrErrorCorrectLevel.M,
                                       ),
@@ -256,7 +315,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // Progress bar countdown
                   if (!_isExpired && !isSuccess) ...[
@@ -283,12 +342,54 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                         minHeight: 4,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                   ],
 
-                  // Animated pulse status
+                  // ── Share with PIN Button ──────────────────────────────
+                  if (!_isExpired && !isSuccess) ...[
+                    InkWell(
+                      onTap: _onShareWithPinPressed,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: AppColors.orangeGradient,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
+                            SizedBox(width: 10),
+                            Text(
+                              'Share with 4-Digit PIN',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Status Indicator
                   if (!_isExpired)
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
                           width: 8,
