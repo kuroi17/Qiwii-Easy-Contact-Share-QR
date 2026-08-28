@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:contactqr_flutter/main.dart';
@@ -13,6 +14,7 @@ void main() {
     );
 
     expect(find.text('Qiwii'), findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsOneWidget);
     expect(find.text('Send contacts'), findsOneWidget);
     expect(find.text('Receive contacts'), findsOneWidget);
     expect(find.text('Zero cloud. Nothing leaves your device.'), findsOneWidget);
