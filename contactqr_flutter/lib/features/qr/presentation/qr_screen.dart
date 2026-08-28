@@ -35,7 +35,7 @@ class QrScreen extends ConsumerStatefulWidget {
 class _QrScreenState extends ConsumerState<QrScreen> {
   late DateTime _expiresAt;
   Timer? _timer;
-  Duration _remaining = const Duration(minutes: 10);
+  Duration _remaining = const Duration(minutes: 15);
   String? _encodedQrData;
   bool _isExpired = false;
   TransferStatus _transferStatus = TransferStatus.waiting;
@@ -50,8 +50,8 @@ class _QrScreenState extends ConsumerState<QrScreen> {
   }
 
   Future<void> _startSession() async {
-    _expiresAt = DateTime.now().add(const Duration(minutes: 10));
-    _remaining = const Duration(minutes: 10);
+    _expiresAt = DateTime.now().add(const Duration(minutes: 15));
+    _remaining = const Duration(minutes: 15);
     _isExpired = false;
     _transferStatus = TransferStatus.waiting;
     _statusMessage = 'Waiting for receiver…';
@@ -64,18 +64,18 @@ class _QrScreenState extends ConsumerState<QrScreen> {
         ? contactsToTransfer
         : demoContacts.take(widget.count).toList();
 
-    // TIER 1: Direct QR mode for small transfers (<= 5 contacts)
-    if (actualContacts.length <= 5) {
+    // TIER 1: Direct QR mode (now supports up to 30 contacts seamlessly via minification)
+    if (actualContacts.length <= 30) {
       final qrString = QrCodec.encodeDirectContacts(
         actualContacts,
-        timeoutMinutes: 10,
+        timeoutMinutes: 15,
       );
 
       setState(() {
         _encodedQrData = qrString;
       });
     } else {
-      // TIER 2: Bulk local network transfer mode
+      // TIER 2: Bulk local network transfer mode for large contact books (>30 contacts)
       final sessionId = 'p2p-${DateTime.now().millisecondsSinceEpoch}';
       final sessionToken = CryptoUtils.generateRandomToken(length: 16);
       final encryptionKey = CryptoUtils.generateSessionKey();
@@ -158,17 +158,18 @@ class _QrScreenState extends ConsumerState<QrScreen> {
               ? contactsToTransfer
               : demoContacts.take(widget.count).toList();
 
-          // Generate PIN-protected encrypted payload
-          final pinProtectedPayload = QrCodec.encodeDirectContacts(
+          // Generate clickable, compact PIN-protected transfer URL
+          final shareUrl = QrCodec.encodeShareUrl(
             actualContacts,
-            timeoutMinutes: 10,
+            timeoutMinutes: 60 * 24, // 24 hours
             pin: pin,
           );
 
           final shareText = '🔐 Qiwii Secure Contact Transfer\n\n'
-              'I shared ${widget.count} contacts with you.\n'
-              'Unlock using the 4-digit PIN in Qiwii:\n\n'
-              '$pinProtectedPayload';
+              'I shared ${widget.count} contact${widget.count == 1 ? '' : 's'} with you.\n\n'
+              '📋 Transfer Link:\n'
+              '$shareUrl\n\n'
+              '👉 In Qiwii: Copy this message, open Qiwii, and unlock with your 4-digit PIN.';
 
           try {
             await Share.share(
@@ -210,7 +211,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
       Clipboard.setData(ClipboardData(text: _encodedQrData!));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('QR transfer payload copied to clipboard'),
+          content: Text('QR transfer link copied to clipboard'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -307,9 +308,19 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                       onTap: _copyQrData,
                                       child: QrImageView(
                                         data: _encodedQrData!,
-                                        size: 200,
+                                        size: 215,
                                         version: QrVersions.auto,
-                                        errorCorrectionLevel: QrErrorCorrectLevel.M,
+                                        errorCorrectionLevel: QrErrorCorrectLevel.L,
+                                        padding: const EdgeInsets.all(8),
+                                        backgroundColor: Colors.white,
+                                        eyeStyle: const QrEyeStyle(
+                                          eyeShape: QrEyeShape.square,
+                                          color: Colors.black,
+                                        ),
+                                        dataModuleStyle: const QrDataModuleStyle(
+                                          dataModuleShape: QrDataModuleShape.square,
+                                          color: Colors.black,
+                                        ),
                                       ),
                                     ),
                     ),
@@ -336,7 +347,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: _remaining.inSeconds / (10 * 60),
+                        value: _remaining.inSeconds / (15 * 60),
                         backgroundColor: AppColors.darkBorder,
                         valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
                         minHeight: 4,

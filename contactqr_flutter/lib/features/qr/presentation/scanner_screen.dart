@@ -21,7 +21,8 @@ import '../../transfer/services/local_transfer_client.dart';
 import 'widgets/enter_pin_modal.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
-  const ScannerScreen({super.key});
+  final String? initialLink;
+  const ScannerScreen({super.key, this.initialLink});
 
   @override
   ConsumerState<ScannerScreen> createState() => _ScannerScreenState();
@@ -39,6 +40,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   void initState() {
     super.initState();
     _initScanner();
+    if (widget.initialLink != null && widget.initialLink!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _processQrString(widget.initialLink!);
+      });
+    }
   }
 
   Future<void> _initScanner() async {
@@ -46,6 +52,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       _controller = MobileScannerController(
         facing: CameraFacing.front,
         torchEnabled: false,
+        formats: const [BarcodeFormat.qrCode],
       );
       if (mounted) setState(() {});
       return;
@@ -55,8 +62,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     if (status.isGranted) {
       _controller = MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
+        detectionTimeoutMs: 200,
         facing: CameraFacing.back,
         torchEnabled: false,
+        formats: const [BarcodeFormat.qrCode],
+        returnImage: false,
       );
       if (mounted) setState(() {});
     } else {
@@ -91,7 +101,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     if (_isProcessing || _isDownloading) return;
 
     if (kIsWeb) {
-      // In web browser preview, simulate PIN-protected QR scan
       _showWebSimulationPrompt();
       return;
     }
@@ -100,8 +109,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
+        imageQuality: 100,
       );
 
       if (pickedFile == null) return;
@@ -128,10 +136,105 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     }
   }
 
+  Future<void> _showPasteLinkDialog() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final clipboardText = clipboardData?.text?.trim() ?? '';
+
+    if (!mounted) return;
+
+    final controller = TextEditingController(text: clipboardText);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.canvas,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Paste Transfer Link',
+              style: AppTextStyles.display(fontSize: 22, color: AppColors.ink),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Paste the link or message you received in Messenger, WhatsApp, or SMS.',
+              style: TextStyle(color: AppColors.ink2, fontSize: 13.5),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              style: const TextStyle(fontSize: 14, color: AppColors.ink),
+              decoration: InputDecoration(
+                hintText: 'https://qiwii.app/t#...',
+                filled: true,
+                fillColor: AppColors.cardWhite,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final text = controller.text.trim();
+                  if (text.isNotEmpty) {
+                    Navigator.pop(ctx);
+                    _processQrString(text);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Unlock & Import Contacts', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showWebSimulationPrompt() {
     final samplePinProtected = QrCodec.encodeDirectContacts(
-      demoContacts.take(3).toList(),
-      timeoutMinutes: 10,
+      demoContacts.take(4).toList(),
+      timeoutMinutes: 60,
       pin: '1234',
     );
 
@@ -280,7 +383,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   void _simulateWebScan() {
     final sampleEncoded = QrCodec.encodeDirectContacts(
       demoContacts.take(4).toList(),
-      timeoutMinutes: 10,
+      timeoutMinutes: 60,
       customSessionId: 'web-simulated-transfer',
     );
     _processQrString(sampleEncoded);
@@ -476,35 +579,70 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
 
                   const SizedBox(height: 16),
 
-                  // ── Upload QR from Gallery Button ──────────────────────
+                  // ── Actions Row: Upload from Gallery + Paste Link ──────
                   if (!_isDownloading) ...[
-                    InkWell(
-                      onTap: _isProcessing ? null : _pickAndScanFromGallery,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: AppColors.darkSurface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.darkBorder),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.photo_library_outlined, color: AppColors.accent, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'Upload QR from Gallery',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: _isProcessing ? null : _pickAndScanFromGallery,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              decoration: BoxDecoration(
+                                color: AppColors.darkSurface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.darkBorder),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.photo_library_outlined, color: AppColors.accent, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Upload QR',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _isProcessing ? null : _showPasteLinkDialog,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              decoration: BoxDecoration(
+                                color: AppColors.darkSurface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.darkBorder),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.link_rounded, color: AppColors.accent, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Paste Link',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                   ],
