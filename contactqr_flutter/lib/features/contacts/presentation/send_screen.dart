@@ -79,7 +79,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                               const Icon(
                                 Icons.contacts_outlined,
                                 size: 54,
-                                color: AppColors.teal,
+                                color: AppColors.accent,
                               ),
                               const SizedBox(height: 16),
                               const Text(
@@ -92,7 +92,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'ContactQR requires contacts access so you can select which contacts you wish to transfer.',
+                                'Qiwii requires contacts access so you can select which contacts you wish to transfer.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: AppColors.slate,
@@ -106,7 +106,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('Try Again'),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.teal,
+                                  backgroundColor: AppColors.accent,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 ),
@@ -134,7 +134,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(color: AppColors.teal),
+                            CircularProgressIndicator(color: AppColors.accent),
                             SizedBox(height: 16),
                             Text(
                               'Loading contacts...',
@@ -178,8 +178,8 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                                 ? 'Clear all'
                                 : 'Select all',
                             style: const TextStyle(
-                              color: AppColors.teal,
-                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -211,7 +211,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                             )
                           : ListView.separated(
                               itemCount: filtered.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                               itemBuilder: (_, index) {
                                 final contact = filtered[index];
                                 return ContactRow(

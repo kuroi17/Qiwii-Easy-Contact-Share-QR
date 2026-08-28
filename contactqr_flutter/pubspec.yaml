@@ -1,6 +1,6 @@
 name: contactqr_flutter
-description: Privacy-first QR-assisted contact transfer for Android and iOS.
-publish_to: 'none'
+description: Qiwii - Easy Contact Share QR. Privacy-first QR-assisted contact transfer for Android and iOS.
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
@@ -18,13 +18,22 @@ dependencies:
   permission_handler: ^11.4.0
   crypto: ^3.0.6
   http: ^1.2.2
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Qiwii_logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
   assets:
     - assets/contactqr_icon.png
+    - assets/Qiwii_logo.png

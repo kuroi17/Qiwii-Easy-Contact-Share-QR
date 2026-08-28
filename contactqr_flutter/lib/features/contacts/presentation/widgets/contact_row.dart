@@ -17,24 +17,20 @@ class ContactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    borderRadius: BorderRadius.circular(15),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: AppColors.border),
-      ),
+    borderRadius: BorderRadius.circular(12),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       child: Row(
         children: [
+          // Monochrome avatar
           CircleAvatar(
             radius: 21,
-            backgroundColor: AppColors.mint,
+            backgroundColor: AppColors.surface2,
             child: Text(
               contact.initials,
               style: const TextStyle(
-                color: AppColors.teal,
-                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+                fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
             ),
@@ -50,52 +46,54 @@ class ContactRow extends StatelessWidget {
                       child: Text(
                         contact.name,
                         style: const TextStyle(
-                          color: AppColors.navy,
-                          fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (contact.isDuplicate)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: AppColors.amber.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          color: AppColors.accentTint,
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         child: const Text(
-                          'DUPLICATE',
+                          'Duplicate',
                           style: TextStyle(
-                            color: AppColors.amber,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
+                            color: AppColors.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   contact.phone,
-                  style: const TextStyle(color: AppColors.slate, fontSize: 13),
+                  style: const TextStyle(color: AppColors.ink3, fontSize: 13),
                 ),
               ],
             ),
           ),
+          // Orange checkmark circle
           Container(
             width: 24,
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: selected ? AppColors.teal : Colors.transparent,
+              color: selected ? AppColors.accent : Colors.transparent,
               border: Border.all(
-                color: selected ? AppColors.teal : const Color(0xFFC7CBD3),
+                color: selected ? AppColors.accent : AppColors.border,
                 width: 1.5,
               ),
             ),
             child: selected
-                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                ? const Icon(Icons.check, color: Colors.white, size: 14)
                 : null,
           ),
         ],

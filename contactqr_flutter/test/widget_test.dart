@@ -5,17 +5,17 @@ import 'package:contactqr_flutter/data/models/contact_model.dart';
 import 'package:contactqr_flutter/features/contacts/providers/sender_provider.dart';
 
 void main() {
-  testWidgets('ContactQR home screen renders primary actions', (tester) async {
+  testWidgets('Qiwii home screen renders primary actions', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: ContactQrApp(),
       ),
     );
 
-    expect(find.text('ContactQR'), findsOneWidget);
+    expect(find.text('Qiwii'), findsOneWidget);
     expect(find.text('Send contacts'), findsOneWidget);
     expect(find.text('Receive contacts'), findsOneWidget);
-    expect(find.text('No accounts. No cloud.'), findsOneWidget);
+    expect(find.text('Zero cloud. Nothing leaves your device.'), findsOneWidget);
   });
 
   test('AppContact model generates initials correctly', () {

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/shell.dart';
-import '../../../core/widgets/summary_row.dart';
 import '../../../data/models/contact_model.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   const ResultScreen({
     super.key,
     required this.count,
@@ -25,94 +23,144 @@ class ResultScreen extends StatelessWidget {
   final List<AppContact> failedContacts;
 
   @override
-  Widget build(BuildContext context) => Shell(
-    child: Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
-            child: Column(
-              children: [
-                Icon(
-                  failedCount > 0 && count == 0 ? Icons.error_outline : Icons.check_circle,
-                  color: failedCount > 0 && count == 0 ? Colors.red : AppColors.success,
-                  size: 72,
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  failedCount > 0 && count == 0 ? 'Import Failed' : 'Transfer Complete',
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  count > 0
-                      ? 'Your selected contacts have been added directly to your device address book.'
-                      : 'No contacts were added.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.slate, fontSize: 15),
-                ),
-                const SizedBox(height: 28),
+  State<ResultScreen> createState() => _ResultScreenState();
+}
 
-                // Metrics Box
-                CardBox(
-                  child: Column(
-                    children: [
-                      SummaryRow(
-                        label: 'Saved to Device',
-                        value: '$count contacts',
-                        color: AppColors.success,
-                      ),
-                      const Divider(color: AppColors.border),
-                      SummaryRow(
-                        label: 'Skipped / Unselected',
-                        value: '$skippedCount contacts',
-                        color: AppColors.amber,
-                      ),
-                      if (failedCount > 0) ...[
-                        const Divider(color: AppColors.border),
-                        SummaryRow(
-                          label: 'Failed',
-                          value: '$failedCount contacts',
-                          color: Colors.red,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnim;
 
-                // Reassurance Banner
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: AppColors.mint,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.shield_outlined, color: AppColors.teal, size: 22),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Zero cloud retention. Nothing was overwritten on your device.',
-                          style: TextStyle(color: AppColors.navy, fontSize: 13, height: 1.4),
-                        ),
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(parent: _animController, curve: Curves.elasticOut);
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSuccess = !(widget.failedCount > 0 && widget.count == 0);
+
+    return Shell(
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Animated Success Circle ─────────────────────────────
+                  ScaleTransition(
+                    scale: _scaleAnim,
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: isSuccess ? AppColors.accentTint : AppColors.error.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
                       ),
-                    ],
+                      child: Icon(
+                        isSuccess ? Icons.check_rounded : Icons.close_rounded,
+                        color: isSuccess ? AppColors.accent : AppColors.error,
+                        size: 34,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 24),
+
+                  // ── Title ───────────────────────────────────────────────
+                  Text(
+                    isSuccess ? 'Transfer complete' : 'Import failed',
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // ── Stat Rows ────────────────────────────────────────────
+                  _StatRow(
+                    label: 'Saved to device',
+                    value: '${widget.count}',
+                    valueColor: AppColors.success,
+                  ),
+                  const Divider(height: 1, color: AppColors.border),
+                  _StatRow(
+                    label: 'Skipped / unselected',
+                    value: '${widget.skippedCount}',
+                  ),
+                  if (widget.failedCount > 0) ...[
+                    const Divider(height: 1, color: AppColors.border),
+                    _StatRow(
+                      label: 'Failed',
+                      value: '${widget.failedCount}',
+                      valueColor: AppColors.error,
+                    ),
+                  ],
+                  const Divider(height: 1, color: AppColors.border),
+                  const _StatRow(
+                    label: 'Cloud data retained',
+                    value: 'None',
+                    valueColor: AppColors.ink3,
+                  ),
+                ],
+              ),
             ),
           ),
+          PrimaryButton(
+            label: 'Done',
+            icon: Icons.check,
+            onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  const _StatRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.ink2, fontSize: 14),
         ),
-        PrimaryButton(
-          label: 'Done',
-          onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor ?? AppColors.ink,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     ),

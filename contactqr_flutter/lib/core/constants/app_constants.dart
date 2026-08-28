@@ -1,5 +1,6 @@
 class AppConstants {
-  static const String appName = 'ContactQR';
+  static const String appName = 'Qiwii - Easy Contact Share QR';
+  static const String appShortName = 'Qiwii';
   static const String appTagline = 'PRIVATE BY DESIGN';
   static const String appHeadline = 'Move the right contacts, not your whole address book.';
   static const String appSubtitle = 'Select a few people, show a QR code, and let the receiver choose what to save.';
