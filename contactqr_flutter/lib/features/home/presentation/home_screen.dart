@@ -91,14 +91,11 @@ class HomeScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Share contacts,\ninstantly.',
-                            style: TextStyle(
+                            style: AppTextStyles.display(
+                              fontSize: 32,
                               color: AppColors.ink,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15,
-                              letterSpacing: -0.8,
                             ),
                           ),
                           const SizedBox(height: 8),

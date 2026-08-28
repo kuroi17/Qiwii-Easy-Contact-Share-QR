@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/search_box.dart';
@@ -52,12 +53,11 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Review before saving',
-                    style: TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                    style: AppTextStyles.display(
+                      fontSize: 26,
+                      color: AppColors.ink,
                     ),
                   ),
                   const SizedBox(height: 8),

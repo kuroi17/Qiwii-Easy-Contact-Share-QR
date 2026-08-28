@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class ActionTile extends StatefulWidget {
   const ActionTile({
@@ -139,11 +140,9 @@ class _ActionTileState extends State<ActionTile> {
                 // ── Bottom Area: Title & Subtitle ──────────────────────────
                 Text(
                   widget.title,
-                  style: const TextStyle(
+                  style: AppTextStyles.cardTitle(
+                    fontSize: 21,
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 4),

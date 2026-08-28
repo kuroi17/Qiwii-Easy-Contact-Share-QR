@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/shell.dart';
 import '../../../data/models/contact_model.dart';
@@ -83,11 +84,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   // ── Title ───────────────────────────────────────────────
                   Text(
                     isSuccess ? 'Transfer complete' : 'Import failed',
-                    style: const TextStyle(
+                    style: AppTextStyles.display(
+                      fontSize: 26,
                       color: AppColors.ink,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
                     ),
                   ),
 
