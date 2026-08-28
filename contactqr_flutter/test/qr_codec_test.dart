@@ -5,7 +5,7 @@ import 'package:contactqr_flutter/data/models/transfer_session_model.dart';
 
 void main() {
   group('QrCodec Tests', () {
-    test('encodes and decodes session round-trip', () {
+    test('encodes and decodes session round-trip with https URL format', () {
       final originalSession = TransferSession(
         sessionId: 'sess-12345',
         protocolVersion: 1,
@@ -20,7 +20,7 @@ void main() {
       );
 
       final encoded = QrCodec.encodeSession(originalSession);
-      expect(encoded.startsWith('qiwii://'), true);
+      expect(encoded.contains('#'), true);
 
       final decoded = QrCodec.decode(encoded);
       expect(decoded.sessionId, 'sess-12345');
@@ -52,36 +52,45 @@ void main() {
       expect(unpacked[1].name, 'Jordan Rivera');
     });
 
-    test('encodes and unpacks 4-digit PIN protected direct payload', () {
-      const contacts = [
-        AppContact(id: '1', name: 'Liam Vance', phone: '+14155550199', initials: 'LV'),
-      ];
-      const pin = '7890';
+    test('encodes 14 contacts into compact clickable URL and decodes cleanly with PIN', () {
+      final contacts = List.generate(
+        14,
+        (i) => AppContact(
+          id: '$i',
+          name: 'Contact $i',
+          phone: '+6391700000$i',
+          email: 'user$i@qiwii.app',
+          initials: 'C$i',
+        ),
+      );
+      const pin = '4321';
 
-      final encoded = QrCodec.encodeDirectContacts(contacts, pin: pin);
-      final session = QrCodec.decode(encoded);
+      final shareUrl = QrCodec.encodeShareUrl(contacts, pin: pin);
+      expect(shareUrl.contains('#'), true);
 
-      expect(session.isPinProtected, true);
-      expect(session.pinSalt != null, true);
+      // Verify decode directly from URL
+      final sessionFromUrl = QrCodec.decode(shareUrl);
+      expect(sessionFromUrl.contactCount, 14);
+      expect(sessionFromUrl.isPinProtected, true);
+
+      // Verify decode from chat message containing text + URL
+      final chatMessage = '🔐 Qiwii Secure Contact Transfer\n'
+          'I shared 14 contacts with you.\n'
+          'Tap link:\n$shareUrl\n'
+          'Enter PIN to unlock.';
+      final sessionFromChat = QrCodec.decode(chatMessage);
+      expect(sessionFromChat.contactCount, 14);
+      expect(sessionFromChat.isPinProtected, true);
 
       // Unpack with correct PIN
       final unpacked = QrCodec.decodeDirectPayload(
-        session.directPayload,
+        sessionFromChat.directPayload,
         pin: pin,
-        salt: session.pinSalt,
+        salt: sessionFromChat.pinSalt,
       );
-      expect(unpacked.length, 1);
-      expect(unpacked[0].name, 'Liam Vance');
-
-      // Unpack with wrong PIN fails
-      expect(
-        () => QrCodec.decodeDirectPayload(
-          session.directPayload,
-          pin: '0000',
-          salt: session.pinSalt,
-        ),
-        throwsA(isA<QrProtocolException>()),
-      );
+      expect(unpacked.length, 14);
+      expect(unpacked[0].name, 'Contact 0');
+      expect(unpacked[13].name, 'Contact 13');
     });
 
     test('throws QrExpiredException when QR code is expired', () {

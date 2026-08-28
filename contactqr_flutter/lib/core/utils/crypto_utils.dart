@@ -77,61 +77,90 @@ class CryptoUtils {
     // Compute HMAC authentication tag over IV + Ciphertext
     final authTag = Hmac(sha256, keyBytes).convert([...iv, ...cipherBytes]).bytes;
 
-    final result = {
-      'iv': base64UrlEncode(iv),
-      'ct': base64UrlEncode(cipherBytes),
-      'tag': base64UrlEncode(authTag),
-    };
+    // Pack binary: IV (16 bytes) + AuthTag (32 bytes) + CipherBytes (N bytes)
+    final packed = Uint8List(16 + 32 + cipherBytes.length);
+    packed.setRange(0, 16, iv);
+    packed.setRange(16, 48, authTag);
+    packed.setRange(48, packed.length, cipherBytes);
 
-    return base64UrlEncode(utf8.encode(jsonEncode(result)));
+    return base64UrlEncode(packed).replaceAll('=', '');
   }
 
   /// Decrypts a payload and verifies its cryptographic HMAC authentication tag.
+  /// Supports both ultra-compact binary format and legacy JSON packages.
   static String decryptPayload(String encryptedPackage, String key) {
     if (encryptedPackage.isEmpty) return '';
 
     try {
-      final jsonBytes = base64Url.decode(encryptedPackage);
-      final jsonMap = jsonDecode(utf8.decode(jsonBytes)) as Map<String, dynamic>;
+      final keyBytes = utf8.encode(key);
+      String normalized = encryptedPackage;
+      while (normalized.length % 4 != 0) {
+        normalized += '=';
+      }
 
+      Uint8List rawBytes;
+      try {
+        rawBytes = Uint8List.fromList(base64Url.decode(normalized));
+      } catch (_) {
+        rawBytes = Uint8List.fromList(base64.decode(normalized.replaceAll('-', '+').replaceAll('_', '/')));
+      }
+
+      // Check if it's the ultra-compact binary format (length >= 48 bytes: 16 IV + 32 Tag)
+      if (rawBytes.length >= 48 && rawBytes[0] != 0x7B) { // 0x7B is '{' in ASCII
+        final iv = rawBytes.sublist(0, 16);
+        final expectedTag = rawBytes.sublist(16, 48);
+        final cipherBytes = rawBytes.sublist(48);
+
+        // Verify HMAC authentication tag
+        final calculatedTag = Hmac(sha256, keyBytes).convert([...iv, ...cipherBytes]).bytes;
+        if (!_constantTimeEquals(expectedTag, calculatedTag)) {
+          throw const CryptoException('Payload authentication failed. Invalid PIN or data tampered with.');
+        }
+
+        return _decryptCipherStream(cipherBytes, iv, keyBytes);
+      }
+
+      // Fallback: Legacy JSON format
+      final jsonMap = jsonDecode(utf8.decode(rawBytes)) as Map<String, dynamic>;
       final iv = base64Url.decode(jsonMap['iv'] as String);
       final cipherBytes = base64Url.decode(jsonMap['ct'] as String);
       final expectedTag = base64Url.decode(jsonMap['tag'] as String);
-      final keyBytes = utf8.encode(key);
 
-      // Verify HMAC authentication tag
       final calculatedTag = Hmac(sha256, keyBytes).convert([...iv, ...cipherBytes]).bytes;
       if (!_constantTimeEquals(expectedTag, calculatedTag)) {
         throw const CryptoException('Payload authentication failed. Invalid PIN or data tampered with.');
       }
 
-      // Decrypt cipher stream
-      final plainBytes = Uint8List(cipherBytes.length);
-      int blockCounter = 0;
-      int keyStreamOffset = 0;
-      List<int> currentKeyStream = [];
-
-      for (int i = 0; i < cipherBytes.length; i++) {
-        if (keyStreamOffset >= currentKeyStream.length) {
-          final counterBytes = [
-            (blockCounter >> 24) & 0xFF,
-            (blockCounter >> 16) & 0xFF,
-            (blockCounter >> 8) & 0xFF,
-            blockCounter & 0xFF,
-          ];
-          final hmac = Hmac(sha256, keyBytes);
-          currentKeyStream = hmac.convert([...iv, ...counterBytes]).bytes;
-          blockCounter++;
-          keyStreamOffset = 0;
-        }
-        plainBytes[i] = cipherBytes[i] ^ currentKeyStream[keyStreamOffset++];
-      }
-
-      return utf8.decode(plainBytes);
+      return _decryptCipherStream(cipherBytes, iv, keyBytes);
     } catch (e) {
       if (e is CryptoException) rethrow;
       throw const CryptoException('Corrupted or invalid encrypted payload.');
     }
+  }
+
+  static String _decryptCipherStream(List<int> cipherBytes, List<int> iv, List<int> keyBytes) {
+    final plainBytes = Uint8List(cipherBytes.length);
+    int blockCounter = 0;
+    int keyStreamOffset = 0;
+    List<int> currentKeyStream = [];
+
+    for (int i = 0; i < cipherBytes.length; i++) {
+      if (keyStreamOffset >= currentKeyStream.length) {
+        final counterBytes = [
+          (blockCounter >> 24) & 0xFF,
+          (blockCounter >> 16) & 0xFF,
+          (blockCounter >> 8) & 0xFF,
+          blockCounter & 0xFF,
+        ];
+        final hmac = Hmac(sha256, keyBytes);
+        currentKeyStream = hmac.convert([...iv, ...counterBytes]).bytes;
+        blockCounter++;
+        keyStreamOffset = 0;
+      }
+      plainBytes[i] = cipherBytes[i] ^ currentKeyStream[keyStreamOffset++];
+    }
+
+    return utf8.decode(plainBytes);
   }
 
   static bool _constantTimeEquals(List<int> a, List<int> b) {
