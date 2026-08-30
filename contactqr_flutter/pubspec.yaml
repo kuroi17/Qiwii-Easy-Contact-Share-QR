@@ -24,6 +24,7 @@ dependencies:
   share_plus: ^10.1.4
   path_provider: ^2.1.5
   app_links: ^7.2.1
+  qr_code_dart_decoder: ^0.1.2
 
 dev_dependencies:
   flutter_test:

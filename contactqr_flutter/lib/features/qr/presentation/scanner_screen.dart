@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:qr_code_dart_decoder/qr_code_dart_decoder.dart' as qrd;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/qr_codec.dart';
@@ -100,11 +101,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   Future<void> _pickAndScanFromGallery() async {
     if (_isProcessing || _isDownloading) return;
 
-    if (kIsWeb) {
-      _showWebSimulationPrompt();
-      return;
-    }
-
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -118,20 +114,39 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
         _isProcessing = true;
       });
 
-      final barcodes = await _controller?.analyzeImage(pickedFile.path);
+      String? detectedQr;
 
-      if (barcodes != null && barcodes.barcodes.isNotEmpty) {
-        final rawValue = barcodes.barcodes.first.rawValue;
-        if (rawValue != null && rawValue.isNotEmpty) {
-          await _processQrString(rawValue);
-          return;
-        }
+      // 1. If on native mobile, try mobile_scanner first
+      if (!kIsWeb && _controller != null) {
+        try {
+          final barcodes = await _controller?.analyzeImage(pickedFile.path);
+          if (barcodes != null && barcodes.barcodes.isNotEmpty) {
+            detectedQr = barcodes.barcodes.first.rawValue;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Cross-platform & Web fallback: decode image bytes with qr_code_dart_decoder
+      if (detectedQr == null || detectedQr.isEmpty) {
+        try {
+          final bytes = await pickedFile.readAsBytes();
+          final decoder = qrd.QrCodeDartDecoder(formats: [qrd.BarcodeFormat.qrCode]);
+          final result = await decoder.decodeFile(bytes);
+          if (result != null && result.text.isNotEmpty) {
+            detectedQr = result.text;
+          }
+        } catch (_) {}
+      }
+
+      if (detectedQr != null && detectedQr.isNotEmpty) {
+        await _processQrString(detectedQr);
+        return;
       }
 
       _showErrorSnackBar('No QR code detected in this photo. Please select an image with a clear Qiwii QR code.');
       _resetScanner();
     } catch (e) {
-      _showErrorSnackBar('Please restart the app to enable gallery scanner: $e');
+      _showErrorSnackBar('Error reading image: $e');
       _resetScanner();
     }
   }
@@ -231,40 +246,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     );
   }
 
-  void _showWebSimulationPrompt() {
-    final samplePinProtected = QrCodec.encodeDirectContacts(
-      demoContacts.take(4).toList(),
-      timeoutMinutes: 60,
-      pin: '1234',
-    );
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
-        title: const Text('Simulate Gallery QR Scan (Web)', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'In Chrome/Web mode, native mobile gallery is simulated.\n\n'
-          'Would you like to simulate scanning a PIN-protected QR code (Default PIN: 1234)?',
-          style: TextStyle(color: AppColors.darkSubtitle),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.darkSubtitle)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _processQrString(samplePinProtected);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
-            child: const Text('Simulate Scan'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _processQrString(String rawData) async {
     setState(() {

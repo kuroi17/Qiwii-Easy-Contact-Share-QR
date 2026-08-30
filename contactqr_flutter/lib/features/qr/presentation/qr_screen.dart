@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -171,23 +172,207 @@ class _QrScreenState extends ConsumerState<QrScreen> {
               '$shareUrl\n\n'
               '👉 In Qiwii: Copy this message, open Qiwii, and unlock with your 4-digit PIN.';
 
-          try {
-            await Share.share(
-              shareText,
-              subject: 'Qiwii Shared Contacts',
-            );
-          } catch (_) {
+          if (kIsWeb) {
             await Clipboard.setData(ClipboardData(text: shareText));
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('PIN-encrypted link copied to clipboard! (Ready to paste in chat)'),
-                  backgroundColor: AppColors.accent,
-                  behavior: SnackBarBehavior.floating,
-                ),
+              _showShareSuccessModal(shareText, shareUrl, pin);
+            }
+          } else {
+            try {
+              await Share.share(
+                shareText,
+                subject: 'Qiwii Shared Contacts',
               );
+            } catch (_) {
+              await Clipboard.setData(ClipboardData(text: shareText));
+              if (mounted) {
+                _showShareSuccessModal(shareText, shareUrl, pin);
+              }
             }
           }
+        },
+      ),
+    );
+  }
+
+  void _showShareSuccessModal(String shareText, String shareUrl, String pin) {
+    bool copied = false;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.canvas,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.25),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 36,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Transfer Link Copied!',
+                  style: AppTextStyles.display(fontSize: 22, color: AppColors.ink),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'Your PIN-encrypted link is copied to your clipboard. Paste it directly in Messenger, WhatsApp, or any messaging app.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.ink2,
+                      height: 1.45,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardWhite,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentTint,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.lock_rounded, size: 16, color: AppColors.accent),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Required PIN:',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.ink2),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              pin,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(color: AppColors.border, height: 1),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.link_rounded, size: 18, color: AppColors.ink3),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              shareUrl,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.ink3,
+                                fontFamily: 'monospace',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: shareText));
+                          setModalState(() {
+                            copied = true;
+                          });
+                          HapticFeedback.lightImpact();
+                        },
+                        icon: Icon(copied ? Icons.done_all_rounded : Icons.copy_rounded, size: 18),
+                        label: Text(copied ? 'Copied!' : 'Copy Again'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.ink,
+                          side: const BorderSide(color: AppColors.border),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
