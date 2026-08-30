@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class ActionTile extends StatefulWidget {
   const ActionTile({
@@ -10,6 +11,7 @@ class ActionTile extends StatefulWidget {
     required this.subtitle,
     required this.onTap,
     this.isPrimary = false,
+    this.badgeText,
   });
 
   final IconData icon;
@@ -17,6 +19,7 @@ class ActionTile extends StatefulWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool isPrimary;
+  final String? badgeText;
 
   @override
   State<ActionTile> createState() => _ActionTileState();
@@ -25,7 +28,7 @@ class ActionTile extends StatefulWidget {
 class _ActionTileState extends State<ActionTile> {
   double _scale = 1.0;
 
-  void _onTapDown(_) => setState(() => _scale = 0.975);
+  void _onTapDown(_) => setState(() => _scale = 0.98);
   void _onTapUp(_) => setState(() => _scale = 1.0);
   void _onTapCancel() => setState(() => _scale = 1.0);
 
@@ -40,83 +43,120 @@ class _ActionTileState extends State<ActionTile> {
     },
     child: AnimatedScale(
       scale: _scale,
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
       child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: widget.isPrimary ? AppColors.accentTint : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: widget.isPrimary
+                ? AppColors.orangeGradient
+                : AppColors.orangeGradientSecondary,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.28),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: -2,
+            ),
+          ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // Orange left accent bar (primary only)
-              if (widget.isPrimary)
-                Container(
-                  width: 4,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                    ),
-                  ),
-                ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: widget.isPrimary ? AppColors.accent : AppColors.surface2,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          widget.icon,
-                          color: widget.isPrimary ? Colors.white : AppColors.ink2,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              widget.subtitle,
-                              style: const TextStyle(
-                                color: AppColors.ink2,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: widget.isPrimary ? AppColors.accent : AppColors.ink3,
-                      ),
-                    ],
-                  ),
+        child: Stack(
+          children: [
+            // Subtle abstract decorative circle like Image 1
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
-            ],
-          ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Top Row: Icon Badge + Action Arrow ─────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    if (widget.badgeText != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          widget.badgeText!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Bottom Area: Title & Subtitle ──────────────────────────
+                Text(
+                  widget.title,
+                  style: AppTextStyles.cardTitle(
+                    fontSize: 21,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.88),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     ),

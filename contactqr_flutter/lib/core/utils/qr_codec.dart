@@ -96,7 +96,7 @@ class QrCodec {
     } else if (rawData.trim().startsWith('{') && rawData.trim().endsWith('}')) {
       jsonString = rawData.trim();
     } else {
-      throw const QrProtocolException('Unrecognized QR code. Please scan a ContactQR code.');
+      throw const QrProtocolException('Unrecognized QR code. Please scan a Qiwii code.');
     }
 
     Map<String, dynamic> map;
@@ -107,12 +107,12 @@ class QrCodec {
     }
 
     if (map['app'] != protocolName) {
-      throw const QrProtocolException('Not a valid ContactQR transfer code.');
+      throw const QrProtocolException('Not a valid Qiwii transfer code.');
     }
 
     final version = map['v'] as int? ?? 1;
     if (version > currentVersion) {
-      throw QrProtocolException('This QR code requires a newer version of ContactQR (v$version).');
+      throw QrProtocolException('This QR code requires a newer version of Qiwii (v$version).');
     }
 
     final expTimestamp = map['exp'] as int?;

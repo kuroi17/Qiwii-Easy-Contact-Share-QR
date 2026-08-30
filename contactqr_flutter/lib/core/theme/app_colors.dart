@@ -1,25 +1,38 @@
 import 'package:flutter/material.dart';
 
-/// ContactQR Orange Ember Design System
-/// Accent: #FF6B2C (Warm Burnt Orange)
-/// Canvas: #FFFFFF (Pure White)
+/// ContactQR / Qiwii Orange Ember Design System
+/// Inspired by modern warm-minimalist card interfaces
+/// Accent: #FF7A1A (Vibrant Warm Orange)
+/// Canvas: #FAF1E8 (Warm Sand / Almond Cream)
 class AppColors {
-  // ─── Canvas & Surface ────────────────────────────────────────────────────
-  static const Color canvas = Color(0xFFFFFFFF);       // Pure White
-  static const Color surface = Color(0xFFF5F5F5);      // Near-White Mist
-  static const Color surface2 = Color(0xFFEDEDEC);     // Cool Ash
+  // ─── Canvas & Surface (Warm Sand Cream matching modern card UI) ───────────
+  static const Color canvas = Color(0xFFFAF1E8);       // Warm Almond Cream
+  static const Color surface = Color(0xFFF2E6DA);      // Warm Mist Surface
+  static const Color surface2 = Color(0xFFE9DCCE);     // Warm Ash
+  static const Color cardWhite = Color(0xFFFFFFFF);    // Crisp Card White
 
-  // ─── Accent (Orange Ember) ────────────────────────────────────────────────
-  static const Color accent = Color(0xFFFF6B2C);       // Orange Ember — THE one bold color
-  static const Color accentTint = Color(0xFFFFF0E8);   // Ember Glow — pill backgrounds
+  // ─── Accent & Card Oranges (Image 1 Palette) ──────────────────────────────
+  static const Color accent = Color(0xFFFF7A1A);       // Vibrant Warm Orange
+  static const Color accentDark = Color(0xFFFF570B);   // Deep Ember
+  static const Color accentTint = Color(0xFFFFF0E4);   // Soft Glow Cream
+
+  static const List<Color> orangeGradient = [
+    Color(0xFFFF8828),
+    Color(0xFFFF570B),
+  ];
+
+  static const List<Color> orangeGradientSecondary = [
+    Color(0xFFFF7718),
+    Color(0xFFE84E00),
+  ];
 
   // ─── Ink (Typography) ────────────────────────────────────────────────────
-  static const Color ink = Color(0xFF111111);          // Near-Black
-  static const Color ink2 = Color(0xFF555555);         // Medium Graphite
-  static const Color ink3 = Color(0xFFA0A0A0);         // Light Graphite / Captions
+  static const Color ink = Color(0xFF181512);          // Deep Charcoal Espresso
+  static const Color ink2 = Color(0xFF5A524C);         // Warm Medium Graphite
+  static const Color ink3 = Color(0xFF9E948C);         // Warm Muted Caption
 
   // ─── Border ───────────────────────────────────────────────────────────────
-  static const Color border = Color(0xFFE8E8E8);       // Hairline Gray
+  static const Color border = Color(0xFFEADBCE);       // Warm Hairline Border
 
   // ─── Semantic ─────────────────────────────────────────────────────────────
   static const Color success = Color(0xFF1A9E5C);      // Emerald
@@ -32,7 +45,7 @@ class AppColors {
   static const Color darkBorder = Color(0xFF2C2F3A);   // Subtle divider on dark
   static const Color darkSubtitle = Color(0xFF8A8F9E); // Muted text on dark
 
-  // ─── Legacy aliases (kept to avoid breaking any untouched code) ───────────
+  // ─── Legacy aliases ───────────────────────────────────────────────────────
   static const Color navy = ink;
   static const Color darkNavy = darkSurface;
   static const Color darkNavyBorder = darkBorder;

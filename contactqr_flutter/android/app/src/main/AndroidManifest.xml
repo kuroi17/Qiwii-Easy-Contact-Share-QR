@@ -13,7 +13,7 @@
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
     <application
-        android:label="contactqr_flutter"
+        android:label="Qiwii - Easy Contact Share QR"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

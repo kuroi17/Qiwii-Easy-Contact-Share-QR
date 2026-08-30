@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -52,12 +53,11 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Choose people to share',
-                    style: TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                    style: AppTextStyles.display(
+                      fontSize: 26,
+                      color: AppColors.ink,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -92,7 +92,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'ContactQR requires contacts access so you can select which contacts you wish to transfer.',
+                                'Qiwii requires contacts access so you can select which contacts you wish to transfer.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: AppColors.slate,

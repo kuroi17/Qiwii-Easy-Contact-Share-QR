@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/crypto_utils.dart';
 import '../../../core/utils/network_helper.dart';
 import '../../../core/utils/qr_codec.dart';
@@ -184,14 +185,11 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                     active: !_isExpired,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Show this code\nto the receiver',
-                    style: TextStyle(
+                    style: AppTextStyles.displayDark(
+                      fontSize: 26,
                       color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                      letterSpacing: -0.6,
                     ),
                   ),
                   const SizedBox(height: 28),

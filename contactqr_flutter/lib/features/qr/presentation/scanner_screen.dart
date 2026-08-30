@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/qr_codec.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/shell.dart';
@@ -192,12 +193,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                   const SizedBox(height: 24),
                   Text(
                     _isDownloading ? 'Receiving contacts...' : 'Scan the sender’s code',
-                    style: const TextStyle(
+                    style: AppTextStyles.displayDark(
+                      fontSize: 26,
                       color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                      letterSpacing: -0.6,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -238,7 +236,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'ContactQR needs the camera to scan the transfer QR code.',
+                                'Qiwii needs the camera to scan the transfer QR code.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
                               ),

@@ -1,18 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Centralized TextStyle tokens for ContactQR
+/// Centralized TextStyle tokens for Qiwii
 class AppTextStyles {
-  // Display — screen titles, hero headlines
-  static const TextStyle display = TextStyle(
-    color: AppColors.ink,
-    fontSize: 30,
-    fontWeight: FontWeight.w800,
-    height: 1.15,
-    letterSpacing: -0.8,
-  );
+  // Brand — Titan One logo and prominent brand display
+  static TextStyle brand({
+    double fontSize = 22,
+    Color color = AppColors.ink,
+    double letterSpacing = 0.5,
+  }) =>
+      GoogleFonts.titanOne(
+        fontSize: fontSize,
+        color: color,
+        letterSpacing: letterSpacing,
+      );
 
-  // Title — section/card headers
+  // Display — screen titles, hero headlines (Titan One)
+  static TextStyle display({
+    double fontSize = 28,
+    Color color = AppColors.ink,
+    double height = 1.18,
+    double letterSpacing = 0.2,
+  }) =>
+      GoogleFonts.titanOne(
+        fontSize: fontSize,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  // Display on Dark Canvas (Titan One)
+  static TextStyle displayDark({
+    double fontSize = 26,
+    Color color = Colors.white,
+    double height = 1.2,
+    double letterSpacing = 0.2,
+  }) =>
+      GoogleFonts.titanOne(
+        fontSize: fontSize,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  // Card Header / Action Titles in Titan One
+  static TextStyle cardTitle({
+    double fontSize = 21,
+    Color color = Colors.white,
+    double letterSpacing = 0.3,
+  }) =>
+      GoogleFonts.titanOne(
+        fontSize: fontSize,
+        color: color,
+        letterSpacing: letterSpacing,
+      );
+
+  // Title — standard section/list headers (Plus Jakarta Sans)
   static const TextStyle title = TextStyle(
     color: AppColors.ink,
     fontSize: 17,
@@ -38,15 +82,6 @@ class AppTextStyles {
     fontSize: 11,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.5,
-  );
-
-  // On dark canvas
-  static const TextStyle displayDark = TextStyle(
-    color: Colors.white,
-    fontSize: 28,
-    fontWeight: FontWeight.w800,
-    height: 1.2,
-    letterSpacing: -0.6,
   );
 
   static const TextStyle bodyDark = TextStyle(
