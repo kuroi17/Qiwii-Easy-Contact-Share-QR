@@ -22,7 +22,7 @@
 
 ## Project Status
 
-> **Active Open-Source Project** — Qiwii is built with a modern Warm Almond & Orange Ember design system, featuring full offline transfers, PIN-protected encryption, Android deep linking, live camera scanning, gallery image decoding, and an automated web redirector.
+> **Active Open-Source Project** — Qiwii is built with a modern Warm Almond & Orange Ember design system, featuring offline transfers, PIN encryption, Android deep linking, live camera scanning, gallery image decoding, and an automated web redirector.
 
 ---
 
@@ -59,26 +59,26 @@ Qiwii provides a frictionless, zero-cloud transfer workflow that keeps data stri
 
 ## Key Features
 
-### 🔐 4-Digit PIN Security & Compact Encryption
+### 4-Digit PIN Security & Compact Encryption
 - **PBKDF2 Key Derivation:** Derives 256-bit AES keys using HMAC-SHA256 with 10,000 iterations and cryptographic salts.
 - **Ultra-Compact Binary Packing:** Formats ciphertext into `[IV (16B) + HMAC Tag (32B) + CipherText (NB)]`, dropping link length by **>70%** (~300 chars for 14 contacts).
 - **Brute-Force Lockout:** Prevents unauthorized guessing with a 5-attempt threshold, visual shake animations, and error lockout modals.
 
-### ⚡ Dual-Tier Transfer Protocol
+### Dual-Tier Transfer Protocol
 - **Tier 1 (Direct QR Mode $\le 5$ contacts):** Encodes compressed contact payloads directly into the visual QR matrix. 100% offline with zero network connectivity needed.
 - **Tier 2 (Bulk P2P Mode $> 5$ to $500+$ contacts):** Spawns an ephemeral encrypted local HTTP server over local Wi-Fi or Mobile Hotspot for instant high-speed transfers.
 
-### 📷 Multi-Channel Scanner & Gallery Decoder
+### Multi-Channel Scanner & Gallery Decoder
 - **Live Camera Scanner:** High-performance viewfinder with target reticle laser beam animation, torch toggle, and haptic feedback.
 - **Gallery & Screenshot Picker:** Upload QR images from device photos or file managers, powered by `qr_code_dart_decoder` for cross-platform web and mobile decoding.
-- **Auto-Clipboard Detection:** Automatically detects Qiwii transfer codes in the clipboard on app launch or resume, prompting an instant **"Unlock & Import Contacts"** sheet.
+- **Auto-Clipboard Detection:** Automatically detects Qiwii transfer codes in the clipboard on app launch or resume, prompting an instant **Unlock & Import Contacts** sheet.
 
-### 📇 Intelligent Address Book Engine
+### Intelligent Address Book Engine
 - **Duplicate Prevention:** Compares normalized E.164 phone numbers and case-insensitive emails against existing device contacts.
-- **Selective Batch Import:** Review contacts before saving with a 1-tap **[Skip All Duplicates]** resolution filter.
+- **Selective Batch Import:** Review contacts before saving with a 1-tap **Skip All Duplicates** resolution filter.
 - **Background Isolate Processing:** Parses and sorts hundreds of contacts off the UI thread via background Dart `compute()` isolates.
 
-### 🌐 Smart Web Redirector Bridge
+### Smart Web Redirector Bridge
 - **GitHub Pages Landing Page (`docs/index.html`):** Resolves in-app browser DNS blocks in Messenger/WhatsApp, launching the app instantly via custom `qiwii://` URL scheme with manual clipboard fallback.
 
 ---
@@ -174,7 +174,7 @@ flutter run -d chrome
 
 ---
 
-## 🧪 Test Suite & Benchmarks
+## Test Suite & Benchmarks
 
 The project includes an automated test suite verifying correctness, cryptography, and scalability:
 
@@ -190,7 +190,7 @@ flutter test
 
 ---
 
-## 📄 Privacy & Security Policy
+## Privacy & Security Policy
 
 Qiwii is built on a **Zero-Cloud Guarantee**:
 - No user accounts or registrations.
@@ -202,7 +202,7 @@ Read the full [PRIVACY.md](PRIVACY.md) document for details.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -215,7 +215,7 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](./LICENSE).
 
@@ -223,7 +223,7 @@ This project is licensed under the [MIT License](./LICENSE).
 
 <div align="center">
 
-Built with 🧡 for seamless, private contact sharing · **Qiwii**
+Built for seamless, private contact sharing · **Qiwii**
 
 [GitHub Repository](https://github.com/kuroi17/Qiwii-Easy-Contact-Share-QR) · [Report an Issue](https://github.com/kuroi17/Qiwii-Easy-Contact-Share-QR/issues) · [Web Redirector](https://kuroi17.github.io/Qiwii-Easy-Contact-Share-QR/)
 
