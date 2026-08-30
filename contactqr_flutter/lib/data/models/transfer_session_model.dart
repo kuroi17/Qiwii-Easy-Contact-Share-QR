@@ -29,6 +29,8 @@ class TransferSession {
     this.encryptionKey,
     this.directPayload,
     this.errorMessage,
+    this.isPinProtected = false,
+    this.pinSalt,
   });
 
   final String sessionId;
@@ -44,6 +46,8 @@ class TransferSession {
   final String? encryptionKey;
   final String? directPayload;
   final String? errorMessage;
+  final bool isPinProtected;
+  final String? pinSalt;
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 
@@ -61,6 +65,8 @@ class TransferSession {
     String? encryptionKey,
     String? directPayload,
     String? errorMessage,
+    bool? isPinProtected,
+    String? pinSalt,
   }) {
     return TransferSession(
       sessionId: sessionId ?? this.sessionId,
@@ -76,6 +82,8 @@ class TransferSession {
       encryptionKey: encryptionKey ?? this.encryptionKey,
       directPayload: directPayload ?? this.directPayload,
       errorMessage: errorMessage ?? this.errorMessage,
+      isPinProtected: isPinProtected ?? this.isPinProtected,
+      pinSalt: pinSalt ?? this.pinSalt,
     );
   }
 
@@ -91,6 +99,8 @@ class TransferSession {
     if (token != null) 'token': token,
     if (encryptionKey != null) 'key': encryptionKey,
     if (directPayload != null) 'data': directPayload,
+    if (isPinProtected) 'pin': true,
+    if (pinSalt != null) 'salt': pinSalt,
   };
 
   factory TransferSession.fromJson(Map<String, dynamic> json) => TransferSession(
@@ -107,5 +117,7 @@ class TransferSession {
     token: json['token'] as String?,
     encryptionKey: json['key'] as String?,
     directPayload: json['data'] as String?,
+    isPinProtected: json['pin'] as bool? ?? false,
+    pinSalt: json['salt'] as String?,
   );
 }

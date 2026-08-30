@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:qr_code_dart_decoder/qr_code_dart_decoder.dart' as qrd;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/qr_codec.dart';
@@ -17,9 +19,11 @@ import '../../import/presentation/received_screen.dart';
 import '../../import/providers/receiver_provider.dart';
 import '../../transfer/providers/transfer_provider.dart';
 import '../../transfer/services/local_transfer_client.dart';
+import 'widgets/enter_pin_modal.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
-  const ScannerScreen({super.key});
+  final String? initialLink;
+  const ScannerScreen({super.key, this.initialLink});
 
   @override
   ConsumerState<ScannerScreen> createState() => _ScannerScreenState();
@@ -29,55 +33,63 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   MobileScannerController? _controller;
   bool _isProcessing = false;
   bool _isDownloading = false;
-  bool _torchEnabled = false;
+  String _downloadStatus = 'Downloading contacts...';
   bool _permissionDenied = false;
-  String _downloadStatus = 'Connecting to sender...';
-  late AnimationController _animController;
+  bool _torchEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _initCamera();
+    _initScanner();
+    if (widget.initialLink != null && widget.initialLink!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _processQrString(widget.initialLink!);
+      });
+    }
   }
 
-  Future<void> _initCamera() async {
-    if (!kIsWeb) {
-      final status = await Permission.camera.request();
-      if (status.isPermanentlyDenied || status.isDenied) {
-        if (mounted) {
-          setState(() => _permissionDenied = true);
-        }
-        return;
-      }
+  Future<void> _initScanner() async {
+    if (kIsWeb) {
+      _controller = MobileScannerController(
+        facing: CameraFacing.front,
+        torchEnabled: false,
+        formats: const [BarcodeFormat.qrCode],
+      );
+      if (mounted) setState(() {});
+      return;
     }
 
-    _controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-      torchEnabled: false,
-    );
-
-    if (mounted) {
-      setState(() => _permissionDenied = false);
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      _controller = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        detectionTimeoutMs: 200,
+        facing: CameraFacing.back,
+        torchEnabled: false,
+        formats: const [BarcodeFormat.qrCode],
+        returnImage: false,
+      );
+      if (mounted) setState(() {});
+    } else {
+      if (mounted) {
+        setState(() {
+          _permissionDenied = true;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    _animController.dispose();
     _controller?.dispose();
     super.dispose();
   }
 
-  void _handleBarcode(BarcodeCapture capture) {
-    if (_isProcessing) return;
+  void _onDetect(BarcodeCapture capture) {
+    if (_isProcessing || _isDownloading) return;
 
-    for (final barcode in capture.barcodes) {
+    final barcodes = capture.barcodes;
+    for (final barcode in barcodes) {
       final rawValue = barcode.rawValue;
       if (rawValue != null && rawValue.isNotEmpty) {
         _processQrString(rawValue);
@@ -86,19 +98,199 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     }
   }
 
-  Future<void> _processQrString(String rawValue) async {
-    if (_isProcessing) return;
-    _isProcessing = true;
+  Future<void> _pickAndScanFromGallery() async {
+    if (_isProcessing || _isDownloading) return;
 
     try {
-      HapticFeedback.mediumImpact();
-      final session = QrCodec.decode(rawValue);
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isProcessing = true;
+      });
+
+      String? detectedQr;
+
+      // 1. If on native mobile, try mobile_scanner first
+      if (!kIsWeb && _controller != null) {
+        try {
+          final barcodes = await _controller?.analyzeImage(pickedFile.path);
+          if (barcodes != null && barcodes.barcodes.isNotEmpty) {
+            detectedQr = barcodes.barcodes.first.rawValue;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Cross-platform & Web fallback: decode image bytes with qr_code_dart_decoder
+      if (detectedQr == null || detectedQr.isEmpty) {
+        try {
+          final bytes = await pickedFile.readAsBytes();
+          final decoder = qrd.QrCodeDartDecoder(formats: [qrd.BarcodeFormat.qrCode]);
+          final result = await decoder.decodeFile(bytes);
+          if (result != null && result.text.isNotEmpty) {
+            detectedQr = result.text;
+          }
+        } catch (_) {}
+      }
+
+      if (detectedQr != null && detectedQr.isNotEmpty) {
+        await _processQrString(detectedQr);
+        return;
+      }
+
+      _showErrorSnackBar('No QR code detected in this photo. Please select an image with a clear Qiwii QR code.');
+      _resetScanner();
+    } catch (e) {
+      _showErrorSnackBar('Error reading image: $e');
+      _resetScanner();
+    }
+  }
+
+  Future<void> _showPasteLinkDialog() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final clipboardText = clipboardData?.text?.trim() ?? '';
+
+    if (!mounted) return;
+
+    final controller = TextEditingController(text: clipboardText);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.canvas,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Paste Transfer Link',
+              style: AppTextStyles.display(fontSize: 22, color: AppColors.ink),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Paste the link or message you received in Messenger, WhatsApp, or SMS.',
+              style: TextStyle(color: AppColors.ink2, fontSize: 13.5),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              style: const TextStyle(fontSize: 14, color: AppColors.ink),
+              decoration: InputDecoration(
+                hintText: 'https://qiwii.app/t#...',
+                filled: true,
+                fillColor: AppColors.cardWhite,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final text = controller.text.trim();
+                  if (text.isNotEmpty) {
+                    Navigator.pop(ctx);
+                    _processQrString(text);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Unlock & Import Contacts', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Future<void> _processQrString(String rawData) async {
+    setState(() {
+      _isProcessing = true;
+    });
+
+    HapticFeedback.mediumImpact();
+
+    try {
+      final session = QrCodec.decode(rawData);
 
       List<AppContact> contacts = [];
 
-      // TIER 1: Direct QR Payload mode
       if (session.mode == TransferMode.direct) {
-        if (session.directPayload != null && session.directPayload!.isNotEmpty) {
+        if (session.isPinProtected) {
+          // Prompt for 4-digit PIN with 5-attempt limit
+          final unlocked = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => EnterPinModal(
+              onPinSubmitted: (pin) async {
+                try {
+                  final decoded = QrCodec.decodeDirectPayload(
+                    session.directPayload,
+                    pin: pin,
+                    salt: session.pinSalt,
+                  );
+                  if (decoded.isNotEmpty) {
+                    contacts = decoded;
+                    return true;
+                  }
+                  return false;
+                } catch (e) {
+                  return false;
+                }
+              },
+            ),
+          );
+
+          if (unlocked != true) {
+            _resetScanner();
+            return;
+          }
+        } else if (session.directPayload != null && session.directPayload!.isNotEmpty) {
           contacts = QrCodec.decodeDirectPayload(session.directPayload);
         } else {
           contacts = demoContacts.take(session.contactCount > 0 ? session.contactCount : 6).toList();
@@ -172,7 +364,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   void _simulateWebScan() {
     final sampleEncoded = QrCodec.encodeDirectContacts(
       demoContacts.take(4).toList(),
-      timeoutMinutes: 10,
+      timeoutMinutes: 60,
       customSessionId: 'web-simulated-transfer',
     );
     _processQrString(sampleEncoded);
@@ -190,7 +382,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Text(
                     _isDownloading ? 'Receiving contacts...' : 'Scan the sender’s code',
                     style: AppTextStyles.displayDark(
@@ -198,28 +390,48 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     _isDownloading
                         ? 'Transferring securely over local connection.'
-                        : 'Align the QR code within the frame.',
+                        : 'Align the QR code within the frame or upload from photos.',
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.darkSubtitle,
-                      fontSize: 14,
-                      height: 1.45,
+                      fontSize: 13.5,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
 
-                  // Camera Scanner or Downloading Progress View
-                  if (_permissionDenied)
+                  if (_isDownloading)
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(color: AppColors.accent),
+                            const SizedBox(height: 24),
+                            Text(
+                              _downloadStatus,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_permissionDenied)
                     Expanded(
                       child: Center(
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: AppColors.darkSurface,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.darkBorder),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -227,7 +439,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                               const Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.accent),
                               const SizedBox(height: 16),
                               const Text(
-                                'Camera access needed',
+                                'Camera Access Needed',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -241,81 +453,41 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                                 style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
                               ),
                               const SizedBox(height: 20),
-                              FilledButton(
-                                onPressed: _initCamera,
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
-                                child: const Text('Grant Access'),
-                              ),
-                              TextButton(
-                                onPressed: () => openAppSettings(),
-                                child: const Text('Open settings', style: TextStyle(color: AppColors.darkSubtitle)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (_isDownloading)
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: AppColors.darkNavy,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: AppColors.darkNavyBorder),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(color: AppColors.teal),
-                              const SizedBox(height: 24),
-                              Text(
-                                _downloadStatus,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                              ElevatedButton(
+                                onPressed: openAppSettings,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
+                                child: const Text('Open Settings'),
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton.icon(
+                                onPressed: _pickAndScanFromGallery,
+                                icon: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                                label: const Text('Upload from Gallery instead', style: TextStyle(color: Colors.white)),
                               ),
                             ],
                           ),
                         ),
                       ),
                     )
-                   else
-                    // Camera Scanner View
+                  else
                     Expanded(
                       child: Stack(
                         children: [
+                          // Camera Preview Viewport
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(24),
                             child: Container(
                               width: double.infinity,
-                              decoration: const BoxDecoration(
-                                color: AppColors.darkSurface,
-                              ),
+                              color: Colors.black,
                               child: _controller == null
-                                  ? GestureDetector(
-                                      onTap: _simulateWebScan,
-                                      child: const Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.qr_code_scanner, size: 72, color: Colors.white70),
-                                            SizedBox(height: 12),
-                                            Text(
-                                              'Initializing camera...',
-                                              style: TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
+                                  ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
                                   : MobileScanner(
                                       controller: _controller!,
-                                      onDetect: _handleBarcode,
+                                      onDetect: _onDetect,
                                       errorBuilder: (context, error) {
                                         return GestureDetector(
                                           onTap: _simulateWebScan,
@@ -387,6 +559,75 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                     ),
 
                   const SizedBox(height: 16),
+
+                  // ── Actions Row: Upload from Gallery + Paste Link ──────
+                  if (!_isDownloading) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: _isProcessing ? null : _pickAndScanFromGallery,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              decoration: BoxDecoration(
+                                color: AppColors.darkSurface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.darkBorder),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.photo_library_outlined, color: AppColors.accent, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Upload QR',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _isProcessing ? null : _showPasteLinkDialog,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              decoration: BoxDecoration(
+                                color: AppColors.darkSurface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.darkBorder),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.link_rounded, color: AppColors.accent, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Paste Link',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   if (!_isDownloading)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -406,7 +647,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                         ),
                       ],
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -452,7 +693,7 @@ class _CornerBracketPainter extends CustomPainter {
     canvas.drawLine(Offset(0, h), Offset(bl, h), paint);
     // Bottom-right
     canvas.drawLine(Offset(w - bl, h), Offset(w, h), paint);
-    canvas.drawLine(Offset(w, h - bl), Offset(w, h), paint);
+    canvas.drawLine(Offset(w, h), Offset(w, h - bl), paint);
   }
 
   @override

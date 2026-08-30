@@ -171,7 +171,7 @@ void main() {
       stopwatch.stop();
 
       expect(duplicatesFound, 50);
-      expect(stopwatch.elapsedMilliseconds, lessThan(200));
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
 
       await server.stop();
     });

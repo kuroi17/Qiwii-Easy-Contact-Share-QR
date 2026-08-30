@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Qiwii • Secure Contact Transfer</title>
+  <link rel="icon" type="image/png" href="QiwiiLogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --canvas: #FAF1E8;
+      --surface: #F2E6DA;
+      --card: #FFFFFF;
+      --border: #EADBCE;
+      --ink: #181512;
+      --ink2: #5A524C;
+      --ink3: #9E948C;
+      --accent: #FF7A1A;
+      --accent-dark: #FF570B;
+      --accent-glow: rgba(255, 122, 26, 0.28);
+      --accent-tint: #FFF0E4;
+      --success: #1A9E5C;
+      --success-tint: #E8F8F0;
+      --success-border: #C4EEDB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--canvas);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 122, 26, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 87, 11, 0.06) 0%, transparent 45%);
+      color: var(--ink);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 410px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 32px;
+      padding: 36px 26px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 
+        0 24px 48px -12px rgba(24, 21, 18, 0.09),
+        0 4px 16px rgba(24, 21, 18, 0.04);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .logo-glow {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      background: var(--accent-glow);
+      filter: blur(20px);
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    .logo {
+      width: 82px;
+      height: 82px;
+      border-radius: 22px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 8px 20px rgba(24, 21, 18, 0.08);
+      object-fit: cover;
+      background: #FFFFFF;
+      border: 1.5px solid rgba(255, 122, 26, 0.15);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--accent-tint);
+      border: 1px solid rgba(255, 122, 26, 0.2);
+      border-radius: 100px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--accent-dark);
+      margin-bottom: 14px;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      color: var(--ink);
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      color: var(--ink2);
+      font-size: 14.5px;
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 18px;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #FF8828 0%, #FF570B 100%);
+      color: #FFFFFF;
+      box-shadow: 0 10px 24px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(255, 122, 26, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: var(--canvas);
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface);
+      border-color: #DFCFBE;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .footer-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink3);
+      margin-top: 22px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--ink);
+      color: #FFFFFF;
+      padding: 12px 22px;
+      border-radius: 100px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+      opacity: 0;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .security-note {
+      margin-top: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo-wrapper">
+        <div class="logo-glow"></div>
+        <img class="logo" src="QiwiiLogo.png" alt="Qiwii Logo">
+      </div>
+
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span id="badgeText">🔐 End-to-End Encrypted</span>
+      </div>
+
+      <h1 id="mainTitle">Secure Contact Transfer</h1>
+      <p class="subtitle" id="subTitle">Opening Qiwii to unlock and import your shared contacts securely...</p>
+
+      <div class="btn-group">
+        <a id="openAppBtn" href="#" class="btn btn-primary">
+          <span>🥝</span> Open in Qiwii App
+        </a>
+
+        <button id="copyBtn" class="btn btn-secondary" onclick="copyCode()">
+          <span>📋</span> Copy Transfer Code
+        </button>
+      </div>
+
+      <div class="footer-status">
+        <div class="spinner"></div>
+        <span>Redirecting automatically...</span>
+      </div>
+    </div>
+
+    <div class="security-note">
+      <span>🔒</span> Protected with 4-Digit Sender PIN
+    </div>
+  </div>
+
+  <div id="toast" class="toast">
+    <span>✅</span> Transfer code copied! Open Qiwii to import.
+  </div>
+
+  <script>
+    var hash = window.location.hash || '';
+    var cleanPayload = hash.startsWith('#') ? hash.substring(1) : hash;
+    var appUrl = 'qiwii://t#' + cleanPayload;
+
+    document.getElementById('openAppBtn').href = appUrl;
+
+    // Parse dynamic count if available
+    if (cleanPayload) {
+      if (cleanPayload.includes('~')) {
+        var parts = cleanPayload.split('~');
+        if (parts.length >= 2) {
+          var count = parseInt(parts[1], 10);
+          if (!isNaN(count) && count > 0) {
+            document.getElementById('badgeText').textContent = '🔐 ' + count + ' Contacts Ready';
+            document.getElementById('subTitle').textContent = 'Opening Qiwii to unlock and import ' + count + ' shared contacts...';
+          }
+        }
+      }
+
+      // Automatically attempt app launch
+      setTimeout(function() {
+        window.location.href = appUrl;
+      }, 250);
+    }
+
+    function copyCode() {
+      if (!cleanPayload) {
+        showToast('No transfer payload detected.');
+        return;
+      }
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cleanPayload).then(function() {
+          showToast('✅ Transfer code copied! Open Qiwii to import.');
+        }).catch(function() {
+          fallbackCopy(cleanPayload);
+        });
+      } else {
+        fallbackCopy(cleanPayload);
+      }
+    }
+
+    function fallbackCopy(text) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('✅ Transfer code copied! Open Qiwii to import.');
+      } catch (err) {
+        showToast('Failed to copy code.');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function showToast(message) {
+      var toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
