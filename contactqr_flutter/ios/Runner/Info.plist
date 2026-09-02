@@ -3,15 +3,31 @@
 <plist version="1.0">
 <dict>
 	<key>NSContactsUsageDescription</key>
-	<string>ContactQR needs access to your contacts to allow you to select contacts for transfer and save received contacts to your device.</string>
+	<string>Qiwii needs access to your contacts to allow you to select contacts for transfer and save received contacts to your device.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>ContactQR uses your camera to scan QR codes for transferring contacts securely.</string>
+	<string>Qiwii uses your camera to scan QR codes for transferring contacts securely.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Qiwii needs photo library access so you can select and scan QR codes from your photos.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>app.qiwii.transfer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>qiwii</string>
+				<string>contactqr</string>
+			</array>
+		</dict>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Contactqr Flutter</string>
+	<string>Qiwii</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

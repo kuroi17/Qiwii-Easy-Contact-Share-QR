@@ -36,6 +36,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
   String _downloadStatus = 'Downloading contacts...';
   bool _permissionDenied = false;
   bool _torchEnabled = false;
+  String? _lastScannedPayload;
+  DateTime? _lastScannedTime;
 
   @override
   void initState() {
@@ -92,6 +94,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
     for (final barcode in barcodes) {
       final rawValue = barcode.rawValue;
       if (rawValue != null && rawValue.isNotEmpty) {
+        final now = DateTime.now();
+        if (_lastScannedPayload == rawValue &&
+            _lastScannedTime != null &&
+            now.difference(_lastScannedTime!).inMilliseconds < 3000) {
+          return; // Prevent infinite re-scan loop within 3 seconds of the exact same barcode
+        }
+        _lastScannedPayload = rawValue;
+        _lastScannedTime = now;
         _processQrString(rawValue);
         break;
       }

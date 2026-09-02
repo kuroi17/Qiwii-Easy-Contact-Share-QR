@@ -217,10 +217,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: Image.asset(
-                            'assets/Qiwii_logo.png',
+                            'assets/qiwii_logo.png',
                             width: 38,
                             height: 38,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: AppColors.accent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Q',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -289,9 +307,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
                                       child: Image.asset(
-                                        'assets/Qiwii_logo.png',
+                                        'assets/qiwii_logo.png',
                                         width: 52,
                                         height: 52,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          width: 52,
+                                          height: 52,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.accent,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'Q',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 24,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -342,7 +378,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                     Icon(Icons.article_outlined, size: 19, color: AppColors.ink),
                                     SizedBox(width: 12),
                                     Text(
-                                      'LICENSES',
+                                      'Licenses',
                                       style: TextStyle(
                                         color: AppColors.ink,
                                         fontSize: 14,

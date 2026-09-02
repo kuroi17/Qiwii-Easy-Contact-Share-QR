@@ -120,12 +120,22 @@ class ReceiverNotifier extends StateNotifier<ReceiverState> {
   }
 
   void selectAll() {
-    final allIds = state.filteredContacts.map((c) => c.id).toSet();
-    state = state.copyWith(selectedIds: allIds);
+    if (state.searchQuery.trim().isNotEmpty) {
+      final filteredIds = state.filteredContacts.map((c) => c.id).toSet();
+      state = state.copyWith(selectedIds: state.selectedIds.union(filteredIds));
+    } else {
+      final allIds = state.receivedContacts.map((c) => c.id).toSet();
+      state = state.copyWith(selectedIds: allIds);
+    }
   }
 
   void clearAll() {
-    state = state.copyWith(selectedIds: {});
+    if (state.searchQuery.trim().isNotEmpty) {
+      final filteredIds = state.filteredContacts.map((c) => c.id).toSet();
+      state = state.copyWith(selectedIds: state.selectedIds.difference(filteredIds));
+    } else {
+      state = state.copyWith(selectedIds: {});
+    }
   }
 
   void deselectDuplicates() {
