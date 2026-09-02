@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -26,27 +27,33 @@ class ReviewScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
-                  const Icon(Icons.verified_user, color: AppColors.teal, size: 34),
-                  const SizedBox(height: 18),
-                  const Text(
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentTint,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.verified_rounded, color: AppColors.accent, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
                     'Ready to share',
-                    style: TextStyle(
-                      color: AppColors.navy,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                    style: AppTextStyles.display(
+                      fontSize: 26,
+                      color: AppColors.ink,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    '${chosen.length} contacts will be offered to the receiver.',
-                    style: const TextStyle(color: AppColors.slate, fontSize: 15),
+                    '${chosen.length} contact${chosen.length == 1 ? '' : 's'} will be offered to the receiver.',
+                    style: const TextStyle(color: AppColors.ink2, fontSize: 14.5),
                   ),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 22),
                   Expanded(
                     child: CardBox(
                       child: ListView.separated(
-                        shrinkWrap: true,
                         itemCount: chosen.length,
                         separatorBuilder: (_, _) => const Divider(color: AppColors.border, height: 1),
                         itemBuilder: (_, index) {
@@ -56,13 +63,13 @@ class ReviewScreen extends ConsumerWidget {
                             child: Row(
                               children: [
                                 CircleAvatar(
-                                  radius: 17,
-                                  backgroundColor: AppColors.mint,
+                                  radius: 18,
+                                  backgroundColor: AppColors.accentTint,
                                   child: Text(
                                     c.initials,
                                     style: const TextStyle(
-                                      color: AppColors.teal,
-                                      fontSize: 11,
+                                      color: AppColors.accentDark,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -75,24 +82,26 @@ class ReviewScreen extends ConsumerWidget {
                                       Text(
                                         c.name,
                                         style: const TextStyle(
-                                          color: AppColors.navy,
+                                          color: AppColors.ink,
                                           fontWeight: FontWeight.w700,
+                                          fontSize: 15,
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
                                       Text(
                                         c.phone,
                                         style: const TextStyle(
-                                          color: AppColors.slate,
-                                          fontSize: 12,
+                                          color: AppColors.ink2,
+                                          fontSize: 13,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const Icon(
-                                  Icons.check_circle,
-                                  color: AppColors.teal,
-                                  size: 20,
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.accent,
+                                  size: 22,
                                 ),
                               ],
                             ),
@@ -106,8 +115,8 @@ class ReviewScreen extends ConsumerWidget {
             ),
           ),
           PrimaryButton(
-            label: 'Generate transfer QR',
-            icon: Icons.qr_code_2,
+            label: 'Generate Transfer QR',
+            icon: Icons.qr_code_rounded,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
