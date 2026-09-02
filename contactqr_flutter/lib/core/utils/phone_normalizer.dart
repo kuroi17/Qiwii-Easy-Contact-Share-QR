@@ -12,9 +12,9 @@ class PhoneNormalizer {
     return hasLeadingPlus ? '+$digitsOnly' : digitsOnly;
   }
 
-  /// Returns the core significant digits (last 7 to 10 digits) for fuzzy matching
+  /// Returns the core significant digits (last 9 to 10 digits) for fuzzy matching
   /// across local dialing formats vs international country codes.
-  static String extractCoreDigits(String phone, {int minDigits = 8}) {
+  static String extractCoreDigits(String phone, {int minDigits = 10}) {
     final normalized = normalize(phone).replaceAll('+', '');
     if (normalized.length <= minDigits) return normalized;
     return normalized.substring(normalized.length - minDigits);
@@ -27,10 +27,24 @@ class PhoneNormalizer {
     if (normA.isEmpty || normB.isEmpty) return false;
     if (normA == normB) return true;
 
-    // Compare core significant digits (last 8-9 digits)
-    final coreA = extractCoreDigits(normA);
-    final coreB = extractCoreDigits(normB);
-    return coreA.isNotEmpty && coreB.isNotEmpty && coreA == coreB;
+    final digitsOnlyA = normA.replaceAll('+', '');
+    final digitsOnlyB = normB.replaceAll('+', '');
+
+    // Compare 10-digit national significant number (e.g. 9171234567)
+    if (digitsOnlyA.length >= 10 && digitsOnlyB.length >= 10) {
+      final coreA = digitsOnlyA.substring(digitsOnlyA.length - 10);
+      final coreB = digitsOnlyB.substring(digitsOnlyB.length - 10);
+      return coreA == coreB;
+    }
+
+    // Compare 9-digit format if available
+    if (digitsOnlyA.length >= 9 && digitsOnlyB.length >= 9) {
+      final coreA = digitsOnlyA.substring(digitsOnlyA.length - 9);
+      final coreB = digitsOnlyB.substring(digitsOnlyB.length - 9);
+      return coreA == coreB;
+    }
+
+    return digitsOnlyA == digitsOnlyB;
   }
 
   /// Checks whether two emails represent the same email address.
