@@ -1,0 +1,48 @@
+name: iOS CI - Build & Test
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ios-build-and-test:
+    name: Build & Verify iOS
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter Dependencies & Run Tests
+        run: |
+          cd contactqr_flutter
+          flutter pub get
+          flutter analyze
+          flutter test --coverage
+
+      - name: Clean & Sync iOS CocoaPods
+        run: |
+          cd contactqr_flutter
+          flutter clean
+          flutter pub get
+          cd ios
+          pod install --repo-update
+
+      - name: Build & Verify iOS Simulator Bundle
+        run: |
+          cd contactqr_flutter
+          flutter build ios --simulator --no-codesign
