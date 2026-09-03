@@ -20,7 +20,7 @@ class QrPinRequiredException extends QrProtocolException {
 }
 
 class QrCodec {
-  static const String webBaseUrl = 'https://kuroi17.github.io/Qiwii-Easy-Contact-Share-QR/#';
+  static const String webBaseUrl = 'https://kuroi17.github.io/Qiwii/#';
   static const String shortDomainUrl = 'https://qiwii.app/t#';
   static const String protocolScheme = 'contactqr://';
   static const String qiwiiScheme = 'qiwii://';

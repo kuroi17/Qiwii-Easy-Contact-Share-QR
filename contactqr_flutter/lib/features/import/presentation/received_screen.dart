@@ -74,11 +74,12 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: AppColors.accentTint,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: AppColors.accent, size: 20),
+                          const Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -90,19 +91,23 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                               ),
                             ),
                           ),
-                          TextButton(
-                            onPressed: () => receiverNotifier.deselectDuplicates(),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Skip All',
-                              style: TextStyle(
-                                color: AppColors.accent,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
+                          InkWell(
+                            onTap: () => receiverNotifier.deselectDuplicates(),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardWhite,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                              ),
+                              child: const Text(
+                                'Skip All',
+                                style: TextStyle(
+                                  color: AppColors.accentDark,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12.5,
+                                ),
                               ),
                             ),
                           ),
@@ -116,35 +121,43 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                     hint: 'Search received contacts',
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${selectedIds.length} of ${receiverState.receivedContacts.length} selected',
-                        style: const TextStyle(
-                          color: AppColors.slate,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          if (selectedIds.length == filtered.length && filtered.isNotEmpty) {
-                            receiverNotifier.clearAll();
-                          } else {
-                            receiverNotifier.selectAll();
-                          }
-                        },
-                        child: Text(
-                          selectedIds.length == filtered.length && filtered.isNotEmpty
-                              ? 'Clear all'
-                              : 'Select all',
-                          style: const TextStyle(
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.w700,
+                  Builder(
+                    builder: (context) {
+                      final allFilteredSelected = filtered.isNotEmpty &&
+                          filtered.every((c) => selectedIds.contains(c.id));
+                      final isFiltering = receiverState.searchQuery.trim().isNotEmpty;
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${selectedIds.length} of ${receiverState.receivedContacts.length} selected',
+                            style: const TextStyle(
+                              color: AppColors.slate,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                          TextButton(
+                            onPressed: () {
+                              if (allFilteredSelected) {
+                                receiverNotifier.clearAll();
+                              } else {
+                                receiverNotifier.selectAll();
+                              }
+                            },
+                            child: Text(
+                              allFilteredSelected
+                                  ? (isFiltering ? 'Deselect matches' : 'Clear all')
+                                  : (isFiltering ? 'Select all matches' : 'Select all'),
+                              style: const TextStyle(
+                                color: AppColors.accent,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   Expanded(
                     child: filtered.isEmpty
@@ -155,6 +168,7 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
                             ),
                           )
                         : ListView.separated(
+                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                             itemCount: filtered.length,
                             separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                             itemBuilder: (_, index) {

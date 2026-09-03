@@ -47,13 +47,15 @@
                 <data android:scheme="contactqr" />
             </intent-filter>
 
-            <!-- HTTPS App Link Handling (https://qiwii.app/t) -->
+            <!-- HTTPS App Link Handling (https://qiwii.app/t and GitHub Pages) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="qiwii.app" android:pathPrefix="/t" />
                 <data android:scheme="http" android:host="qiwii.app" android:pathPrefix="/t" />
+                <data android:scheme="https" android:host="kuroi17.github.io" android:pathPrefix="/Qiwii" />
+                <data android:scheme="https" android:host="kuroi17.github.io" android:pathPrefix="/Qiwii-Easy-Contact-Share-QR" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

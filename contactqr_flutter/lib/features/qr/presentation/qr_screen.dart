@@ -495,7 +495,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                         data: _encodedQrData!,
                                         size: 215,
                                         version: QrVersions.auto,
-                                        errorCorrectionLevel: QrErrorCorrectLevel.L,
+                                        errorCorrectionLevel: QrErrorCorrectLevel.M,
                                         padding: const EdgeInsets.all(8),
                                         backgroundColor: Colors.white,
                                         eyeStyle: const QrEyeStyle(
@@ -512,6 +512,34 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                   ),
 
                   const SizedBox(height: 16),
+
+                  // Same-Network Wi-Fi / Hotspot Tip for Tier 2 transfers (>30 contacts)
+                  if (widget.count > 30 && !_isExpired && !isSuccess) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.darkSurface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.darkBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.wifi_rounded, color: AppColors.accent, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Both devices must be on same Wi-Fi / Hotspot',
+                            style: TextStyle(
+                              color: AppColors.darkSubtitle,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   // Progress bar countdown
                   if (!_isExpired && !isSuccess) ...[

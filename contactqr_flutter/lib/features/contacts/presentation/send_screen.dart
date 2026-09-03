@@ -155,35 +155,43 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                       hint: 'Search by name, number, or email',
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${selectedIds.length} of ${senderState.contacts.length} selected',
-                          style: const TextStyle(
-                            color: AppColors.slate,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (selectedIds.length == filtered.length && filtered.isNotEmpty) {
-                              senderNotifier.clearAll();
-                            } else {
-                              senderNotifier.selectAll();
-                            }
-                          },
-                          child: Text(
-                            selectedIds.length == filtered.length && filtered.isNotEmpty
-                                ? 'Clear all'
-                                : 'Select all',
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w700,
+                    Builder(
+                      builder: (context) {
+                        final allFilteredSelected = filtered.isNotEmpty &&
+                            filtered.every((c) => selectedIds.contains(c.id));
+                        final isFiltering = senderState.searchQuery.trim().isNotEmpty;
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${selectedIds.length} of ${senderState.contacts.length} selected',
+                              style: const TextStyle(
+                                color: AppColors.slate,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                            TextButton(
+                              onPressed: () {
+                                if (allFilteredSelected) {
+                                  senderNotifier.clearAll();
+                                } else {
+                                  senderNotifier.selectAll();
+                                }
+                              },
+                              child: Text(
+                                allFilteredSelected
+                                    ? (isFiltering ? 'Deselect matches' : 'Clear all')
+                                    : (isFiltering ? 'Select all matches' : 'Select all'),
+                                style: const TextStyle(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     Expanded(
                       child: filtered.isEmpty
@@ -210,6 +218,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                               ),
                             )
                           : ListView.separated(
+                              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                               itemCount: filtered.length,
                               separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                               itemBuilder: (_, index) {

@@ -135,8 +135,12 @@ class ContactRepository {
         throw Exception('CONTACTS_PERMISSION_DENIED');
       }
 
+      final parts = contact.name.trim().split(RegExp(r'\s+'));
+      final firstName = parts.isNotEmpty ? parts.first : contact.name;
+      final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
       final nativeContact = fc.Contact(
-        name: fc.Name(first: contact.name),
+        name: fc.Name(first: firstName, last: lastName),
         phones: [fc.Phone(number: contact.phone)],
         emails: contact.email != null && contact.email!.isNotEmpty
             ? [fc.Email(address: contact.email!)]
