@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/card_box.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -21,36 +20,13 @@ class ReviewScreen extends ConsumerWidget {
     return Shell(
       child: Column(
         children: [
-          const Header(title: 'Review selection'),
+          Header(title: 'Review (${chosen.length})'),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentTint,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.verified_rounded, color: AppColors.accent, size: 32),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Ready to share',
-                    style: AppTextStyles.display(
-                      fontSize: 26,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${chosen.length} contact${chosen.length == 1 ? '' : 's'} will be offered to the receiver.',
-                    style: const TextStyle(color: AppColors.ink2, fontSize: 14.5),
-                  ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 12),
                   Expanded(
                     child: CardBox(
                       child: ListView.separated(
@@ -98,11 +74,6 @@ class ReviewScreen extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: AppColors.accent,
-                                  size: 22,
-                                ),
                               ],
                             ),
                           );
@@ -115,7 +86,7 @@ class ReviewScreen extends ConsumerWidget {
             ),
           ),
           PrimaryButton(
-            label: 'Generate Transfer QR',
+            label: 'Generate QR',
             icon: Icons.qr_code_rounded,
             onPressed: () => Navigator.push(
               context,

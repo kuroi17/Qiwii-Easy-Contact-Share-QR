@@ -4,54 +4,58 @@ import 'app_colors.dart';
 
 /// Centralized TextStyle tokens for Qiwii
 class AppTextStyles {
-  // Brand — Titan One logo and prominent brand display
+  // Brand — Modern bold brand display (Plus Jakarta Sans)
   static TextStyle brand({
     double fontSize = 22,
     Color color = AppColors.ink,
-    double letterSpacing = 0.5,
+    double letterSpacing = -0.5,
   }) =>
-      GoogleFonts.titanOne(
+      GoogleFonts.plusJakartaSans(
         fontSize: fontSize,
+        fontWeight: FontWeight.w800,
         color: color,
         letterSpacing: letterSpacing,
       );
 
-  // Display — screen titles, hero headlines (Titan One)
+  // Display — screen titles, hero headlines (Plus Jakarta Sans)
   static TextStyle display({
     double fontSize = 28,
     Color color = AppColors.ink,
-    double height = 1.18,
-    double letterSpacing = 0.2,
+    double height = 1.15,
+    double letterSpacing = -0.6,
   }) =>
-      GoogleFonts.titanOne(
+      GoogleFonts.plusJakartaSans(
         fontSize: fontSize,
+        fontWeight: FontWeight.w800,
         color: color,
         height: height,
         letterSpacing: letterSpacing,
       );
 
-  // Display on Dark Canvas (Titan One)
+  // Display on Dark Canvas (Plus Jakarta Sans)
   static TextStyle displayDark({
     double fontSize = 26,
     Color color = Colors.white,
-    double height = 1.2,
-    double letterSpacing = 0.2,
+    double height = 1.15,
+    double letterSpacing = -0.6,
   }) =>
-      GoogleFonts.titanOne(
+      GoogleFonts.plusJakartaSans(
         fontSize: fontSize,
+        fontWeight: FontWeight.w800,
         color: color,
         height: height,
         letterSpacing: letterSpacing,
       );
 
-  // Card Header / Action Titles in Titan One
+  // Card Header / Action Titles in Plus Jakarta Sans
   static TextStyle cardTitle({
     double fontSize = 21,
     Color color = Colors.white,
-    double letterSpacing = 0.3,
+    double letterSpacing = -0.4,
   }) =>
-      GoogleFonts.titanOne(
+      GoogleFonts.plusJakartaSans(
         fontSize: fontSize,
+        fontWeight: FontWeight.w800,
         color: color,
         letterSpacing: letterSpacing,
       );

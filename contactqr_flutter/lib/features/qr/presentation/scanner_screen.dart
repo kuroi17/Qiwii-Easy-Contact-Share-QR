@@ -386,32 +386,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
       dark: true,
       child: Column(
         children: [
-          const Header(title: 'Receive contacts', light: true),
+          const Header(title: 'Scan QR', light: true),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
-                  Text(
-                    _isDownloading ? 'Receiving contacts...' : 'Scan the sender’s code',
-                    style: AppTextStyles.displayDark(
-                      fontSize: 26,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _isDownloading
-                        ? 'Transferring securely over local connection.'
-                        : 'Align the QR code within the frame or upload from photos.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.darkSubtitle,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 8),
 
                   if (_isDownloading)
                     Expanded(
@@ -581,14 +562,22 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 13),
                               decoration: BoxDecoration(
-                                color: AppColors.darkSurface,
+                                gradient: const LinearGradient(
+                                  colors: AppColors.orangeGradient,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.darkBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(alpha: 0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.photo_library_outlined, color: AppColors.accent, size: 18),
+                                  Icon(Icons.photo_library_outlined, color: Colors.white, size: 18),
                                   SizedBox(width: 8),
                                   Text(
                                     'Upload QR',
@@ -611,14 +600,22 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 13),
                               decoration: BoxDecoration(
-                                color: AppColors.darkSurface,
+                                gradient: const LinearGradient(
+                                  colors: AppColors.orangeGradient,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.darkBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(alpha: 0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: const [
-                                  Icon(Icons.link_rounded, color: AppColors.accent, size: 18),
+                                  Icon(Icons.link_rounded, color: Colors.white, size: 18),
                                   SizedBox(width: 8),
                                   Text(
                                     'Paste Link',
@@ -638,25 +635,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> with SingleTicker
                     const SizedBox(height: 12),
                   ],
 
-                  if (!_isDownloading)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Nothing saved automatically',
-                          style: TextStyle(color: AppColors.darkSubtitle, fontSize: 13),
-                        ),
-                      ],
-                    ),
                   const SizedBox(height: 16),
                 ],
               ),

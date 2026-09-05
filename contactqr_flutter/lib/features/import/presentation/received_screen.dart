@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/header.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/search_box.dart';
 import '../../../core/widgets/shell.dart';
 import '../../contacts/presentation/widgets/contact_row.dart';
 import '../providers/receiver_provider.dart';
-import 'widgets/save_sheet.dart';
+import 'result_screen.dart';
 
 class ReceivedScreen extends ConsumerStatefulWidget {
   const ReceivedScreen({super.key});
@@ -45,27 +44,14 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
     return Shell(
       child: Column(
         children: [
-          const Header(title: 'Received contacts'),
+          const Header(title: 'Incoming contacts'),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
-                  Text(
-                    'Review before saving',
-                    style: AppTextStyles.display(
-                      fontSize: 26,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'The sender offered ${receiverState.receivedContacts.length} contacts. You decide what gets added.',
-                    style: const TextStyle(color: AppColors.slate, fontSize: 15),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Duplicate Detection Warning Banner
                   if (dupCount > 0)
@@ -188,22 +174,39 @@ class _ReceivedScreenState extends ConsumerState<ReceivedScreen> {
           PrimaryButton(
             label: selectedIds.isEmpty ? 'Select Contacts' : 'Save ${selectedIds.length} Contacts',
             icon: Icons.save_alt,
-            onPressed: () {
+            onPressed: () async {
               if (selectedIds.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please select at least one contact to save.')),
                 );
                 return;
               }
-              showModalBottomSheet(
-                context: context,
-                isDismissible: false,
-                backgroundColor: AppColors.canvas,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-                ),
-                builder: (_) => SaveSheet(count: selectedIds.length),
-              );
+              final success = await receiverNotifier.importSelectedContacts();
+              if (!context.mounted) return;
+
+              final state = ref.read(receiverProvider);
+              if (success) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ResultScreen(
+                      count: state.savedCount,
+                      skippedCount: state.skippedCount,
+                      failedCount: state.failedCount,
+                      savedContacts: state.savedContacts,
+                      skippedContacts: state.skippedContacts,
+                      failedContacts: state.failedContacts,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage ?? 'Failed to save contacts to device.'),
+                    backgroundColor: Colors.red.shade800,
+                  ),
+                );
+              }
             },
           ),
         ],

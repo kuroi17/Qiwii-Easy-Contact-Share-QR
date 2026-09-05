@@ -40,7 +40,6 @@ class _QrScreenState extends ConsumerState<QrScreen> {
   String? _encodedQrData;
   bool _isExpired = false;
   TransferStatus _transferStatus = TransferStatus.waiting;
-  String _statusMessage = 'Waiting for receiver…';
 
   LocalTransferServer? _server;
 
@@ -55,7 +54,6 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     _remaining = const Duration(minutes: 15);
     _isExpired = false;
     _transferStatus = TransferStatus.waiting;
-    _statusMessage = 'Waiting for receiver…';
 
     // Fetch contacts to transfer
     final contactsToTransfer = widget.selectedContacts ??
@@ -91,7 +89,6 @@ class _QrScreenState extends ConsumerState<QrScreen> {
           if (mounted) {
             setState(() {
               _transferStatus = status;
-              if (msg != null) _statusMessage = msg;
             });
           }
         },
@@ -135,7 +132,6 @@ class _QrScreenState extends ConsumerState<QrScreen> {
           _isExpired = true;
           _remaining = Duration.zero;
           _transferStatus = TransferStatus.expired;
-          _statusMessage = 'Transfer code expired';
         });
       } else {
         setState(() {
@@ -413,10 +409,11 @@ class _QrScreenState extends ConsumerState<QrScreen> {
         children: [
           const Header(title: 'Transfer', light: true),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
+                  const Spacer(),
                   StatusPill(
                     text: _isExpired
                         ? 'TRANSFER EXPIRED'
@@ -426,15 +423,6 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                                 ? 'SENDING DATA'
                                 : 'READY TO CONNECT',
                     active: !_isExpired,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Show this code\nto the receiver',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.displayDark(
-                      fontSize: 26,
-                      color: Colors.white,
-                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -511,12 +499,10 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
-
                   // Same-Network Wi-Fi / Hotspot Tip for Tier 2 transfers (>30 contacts)
                   if (widget.count > 30 && !_isExpired && !isSuccess) ...[
+                    const SizedBox(height: 14),
                     Container(
-                      margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: AppColors.darkSurface,
@@ -543,6 +529,7 @@ class _QrScreenState extends ConsumerState<QrScreen> {
 
                   // Progress bar countdown
                   if (!_isExpired && !isSuccess) ...[
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Text(
@@ -566,87 +553,56 @@ class _QrScreenState extends ConsumerState<QrScreen> {
                         minHeight: 4,
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
+
+                  const Spacer(),
 
                   // ── Share with PIN Button ──────────────────────────────
-                  if (!_isExpired && !isSuccess) ...[
-                    InkWell(
-                      onTap: _onShareWithPinPressed,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: AppColors.orangeGradient,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.accent.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                  if (!_isExpired && !isSuccess)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: InkWell(
+                        onTap: _onShareWithPinPressed,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: AppColors.orangeGradient,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'Share with 4-Digit PIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.lock_outline_rounded, color: Colors.white, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                'Share with 4-Digit PIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-
-                  // Status Indicator
-                  if (!_isExpired)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isSuccess ? AppColors.success : AppColors.accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _statusMessage,
-                          style: const TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
-                        ),
-                      ],
                     ),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: TextButton(
-              onPressed: () {
-                _server?.stop();
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-              child: const Text(
-                'Cancel transfer',
-                style: TextStyle(color: AppColors.darkSubtitle, fontSize: 14),
-              ),
-            ),
-          ),
+       
         ],
       ),
     );

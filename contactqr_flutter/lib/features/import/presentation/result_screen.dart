@@ -112,12 +112,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                       valueColor: AppColors.error,
                     ),
                   ],
-                  const Divider(height: 1, color: AppColors.border),
-                  const _StatRow(
-                    label: 'Cloud data retained',
-                    value: 'None',
-                    valueColor: AppColors.ink3,
-                  ),
+
                 ],
               ),
             ),

@@ -8,7 +8,7 @@ class ActionTile extends StatefulWidget {
     super.key,
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.onTap,
     this.isPrimary = false,
     this.badgeText,
@@ -16,7 +16,7 @@ class ActionTile extends StatefulWidget {
 
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool isPrimary;
   final String? badgeText;
@@ -135,7 +135,7 @@ class _ActionTileState extends State<ActionTile> {
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: widget.subtitle != null ? 24 : 36),
 
                 // ── Bottom Area: Title & Subtitle ──────────────────────────
                 Text(
@@ -145,15 +145,17 @@ class _ActionTileState extends State<ActionTile> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
+                if (widget.subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle!,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],

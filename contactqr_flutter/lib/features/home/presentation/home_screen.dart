@@ -352,7 +352,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(height: 1),
                               PopupMenuItem(
                                 value: 'privacy',
                                 child: Row(
@@ -370,7 +369,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(height: 1),
                               PopupMenuItem(
                                 value: 'licenses',
                                 child: Row(
@@ -401,19 +399,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Share contacts,\ninstantly.',
+                            'Less typing.\nMore connecting.',
                             style: AppTextStyles.display(
-                              fontSize: 32,
+                              fontSize: 26,
                               color: AppColors.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Transfer multiple contacts peer-to-peer with no cloud.',
-                            style: TextStyle(
-                              color: AppColors.ink2,
-                              fontSize: 14.5,
-                              height: 1.4,
                             ),
                           ),
 
@@ -423,9 +412,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                           ActionTile(
                             icon: Icons.north_east_rounded,
                             title: 'Send contacts',
-                            subtitle: contactCount > 0
-                                ? '$contactCount contacts available to share'
-                                : 'Select multiple contacts to transmit',
+                            subtitle:
+                                'Choose contacts you want to share.',
                             badgeText: contactCount > 0 ? '$contactCount contacts' : null,
                             isPrimary: true,
                             onTap: () => Navigator.push(
@@ -440,7 +428,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                           ActionTile(
                             icon: Icons.qr_code_scanner_rounded,
                             title: 'Receive contacts',
-                            subtitle: 'Scan a sender’s QR code to review & save',
+                            subtitle: 'Scan a QR code to receive contacts.',
                             isPrimary: false,
                             onTap: () => Navigator.push(
                               context,
